@@ -16,18 +16,24 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
-from torch import Tensor
 import math
 
 ParamGroup = Dict[str, Any]
 
 
 
-class CustomAdam(Optimizer):
+class CustomAdamW(Optimizer):
+    """  
+    Effectively just a copy of AdamW but with an option 
+    do_bias_correction to turn off the bias correction 
+    and just initialize the moments with the gradient (resp. squared gradient)
+    """
+
+
     def __init__(
             self, 
             params: Params,
-            lr: float = 1e-4,
+            lr: float = 1e-3,
             eps: float = 1e-8,
             betas: Betas2 = (0.9, 0.99),
             do_bias_correction: bool = False,
@@ -77,8 +83,8 @@ class CustomAdam(Optimizer):
                     state["exp_avg"] = grad
                     state["exp_avg_sq"] = grad**2
                     if group["do_bias_correction"]:
+                        state["exp_avg"] = torch.zeros_like(p, memory_format=torch.preserve_format)   
                         state["exp_avg_sq"] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                        state["nested_exp_ma"] = torch.zeros_like(p, memory_format=torch.preserve_format)   
 
 
                 exp_avg = state["exp_avg"]
@@ -92,12 +98,10 @@ class CustomAdam(Optimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1-beta2)
 
                 if group["do_bias_correction"]:
-                    bias_correction1 = 1 - beta1 ** state["step"]
-                    bias_correction2 = 1 - beta2 ** state["step"]
-                    exp_avg = exp_avg / bias_correction1
-                    exp_avg_sq = exp_avg_sq / bias_correction2
+                    exp_avg = exp_avg.div_(1 - beta1 ** state["step"])
+                    exp_avg_sq = exp_avg_sq.div_(1 - beta2 ** state["step"])
 
-                step = exp_avg / (exp_avg_sq.sqrt() + group["eps"])
-                p.data.add_(step, alpha=-group["lr"])
+                # implement the step efficiently
+                p.data.addcdiv_(exp_avg, exp_avg_sq.sqrt() + group["eps"], value=-group["lr"])
 
         return loss
