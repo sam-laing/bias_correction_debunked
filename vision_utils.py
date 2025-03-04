@@ -12,14 +12,13 @@ def init_wandb(cfg):
   #os.environ["WANDB_API_KEY"] = cfg.wandb_api_key
   os.environ["WANDB__SERVICE_WAIT"] = "600"
   os.environ["WANDB_SILENT"] = "true"
-  wandb_run_name = f"{cfg.optim}, lr={cfg.lr}, eps={cfg.eps}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
+  wandb_run_name = f"{cfg.optim}, bias = {cfg.do_bias_correction}, lr={cfg.lr}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
   wandb.init(
     project=cfg.wandb_project, 
     name=wandb_run_name, 
     dir=cfg.wandb_dir,
     config=cfg._asdict()
   )
-
 
 def load_config(path, job_idx=None):
   """
@@ -50,5 +49,13 @@ def load_config(path, job_idx=None):
   return Config(**cfg), sweep_size
 
 
-def log(cfg, metrics, step, epoch, train_loss, val_loss, val_accuracy):
-  pass
+def log(cfg, epoch, train_loss, val_loss, val_accuracy, lr):
+  """Logs metrics to wandb"""
+  wandb.log({
+    'train_loss': train_loss,
+    'val_loss': val_loss,
+    'val_accuracy': val_accuracy,
+    'lr': lr
+  }, step=epoch)
+
+  print(f"Epoch: {epoch} Step:  Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_accuracy}")
