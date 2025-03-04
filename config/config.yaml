@@ -1,0 +1,26 @@
+# Dataset Configuration
+dataset: "cifar10"  # Options: cifar10, cifar100, svhn, tiny_imagenet, imagenet
+data_dir: "/fast/slaing/data/vision/cifar10"
+batch_size: 64
+num_workers: 4
+
+# Model Configuration
+model: "basic_cnn"  # Options: resnet18, resnet50, wide_resnet50_2, resnet101, ViT, basic_cnn
+
+# Training Parameters
+epochs: 100
+lr: 0.001
+weight_decay: 0.01
+beta1: 0.9
+beta2: 0.999
+eps: 1e-8
+do_bias_correction: true
+
+# Scheduler Configuration
+scheduler: "cosine"  # Options: linear, cosine, constant
+warmup: 0.1  # Proportion of training steps for warmup
+
+# Logging Configuration
+wandb_project: "vision_training"
+wandb_dir: "./wandb_logs"
+wandb_api_key: ""  # Leave empty to use environment variable or wandb login

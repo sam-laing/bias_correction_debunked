@@ -100,4 +100,5 @@ def construct_model(cfg):
                 torch.nn.Dropout(0.5),
                 torch.nn.Linear(4096, 1000)
             )
-    
+            
+    return model
