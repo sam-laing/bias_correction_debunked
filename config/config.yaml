@@ -5,7 +5,7 @@ batch_size: 64
 num_workers: 4
 
 # Model Configuration
-model: "basic_cnn"  # Options: resnet18, resnet50, wide_resnet50_2, resnet101, ViT, basic_cnn
+model: "resnet18"  # Options: resnet18, resnet50, wide_resnet50_2, resnet101, ViT, basic_cnn
 
 # Training Parameters
 epochs: 100
@@ -14,13 +14,22 @@ weight_decay: 0.01
 beta1: 0.9
 beta2: 0.999
 eps: 1e-8
-do_bias_correction: true
+do_bias_correction: false
 
 # Scheduler Configuration
 scheduler: "cosine"  # Options: linear, cosine, constant
 warmup: 0.1  # Proportion of training steps for warmup
 
 # Logging Configuration
-wandb_project: "vision_training"
+use_wandb: false
+wandb_project: "bias_correction"
 wandb_dir: "./wandb_logs"
 wandb_api_key: ""  # Leave empty to use environment variable or wandb login
+
+# Checkpoint Configuration
+save_intermediate_checkpoints: false
+save_last_checkpoint: true
+out_dir: "./checkpoints"
+resume: false
+resume_exp_name: null
+over_write: false
