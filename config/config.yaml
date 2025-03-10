@@ -19,6 +19,7 @@ do_bias_correction: false
 # Scheduler Configuration
 scheduler: "cosine"  # Options: linear, cosine, constant
 warmup: 0.1  # Proportion of training steps for warmup
+step_size: 
 
 # Logging Configuration
 use_wandb: false
@@ -33,3 +34,5 @@ out_dir: "./checkpoints"
 resume: false
 resume_exp_name: null
 over_write: false
+
+seed: 66

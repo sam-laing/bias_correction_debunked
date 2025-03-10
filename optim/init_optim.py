@@ -31,7 +31,12 @@ def initialize_scheduler(optimizer, cfg):
             optimizer, num_warmup_steps=int(cfg.warmup * num_training_steps), num_training_steps=num_training_steps
         )
     elif cfg.scheduler == "constant":
+        # basically like having no scheduler but general so scheduler.step() always called
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: 1)
+    
+    elif cfg.scheduler == "step":
+        return torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
+
     else:
         raise NotImplementedError(f"Scheduler {cfg.scheduler} not implemented or misspelled")
 
