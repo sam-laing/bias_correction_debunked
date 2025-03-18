@@ -38,6 +38,18 @@ class TorchEngine(torch.nn.Module):
         return running_loss / len(train_loader)
 
     def validate(self, val_loader):
+        """   
+        can also be used for test set
+
+        Returns: 
+        --------
+        val_loss: float
+            Average validation loss
+        accuracy: float
+            Validation accuracy
+            
+        """
+
         self.model.eval()
         running_loss = 0.0
         correct = 0
@@ -54,11 +66,7 @@ class TorchEngine(torch.nn.Module):
         
         return running_loss / len(val_loader), correct / total
 
-    def train(self, train_loader, val_loader, epochs):
-        for epoch in range(epochs):
-            train_loss = self.train_one_epoch(train_loader)
-            val_loss, val_acc = self.validate(val_loader)
-            print(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_acc}")
+
 
 
 

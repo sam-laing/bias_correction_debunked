@@ -21,6 +21,27 @@ import math
 ParamGroup = Dict[str, Any]
 
 
+def compute_statistics(t1: torch.Tensor, t2: torch.Tensor) -> Dict[str, float]:
+    t1, t2 = t1.view(-1), t2.view(-1)
+
+    norm1= torch.norm(t1)
+    norm2= torch.norm(t2)
+
+    inner_product = torch.dot(t1, t2)
+    cosine_similarity = inner_product / (norm1 * norm2)
+    cosine_similarity = max(min(cosine_similarity, 1.0), -1.0)
+
+    angle = torch.acos(cosine_similarity) * 180 / 3.14159265359
+
+    return {
+        "inner_product": inner_product.item(),
+        "norm_1": norm1.item(),
+        "norm_2": norm2.item(),
+        "cosine_similarity": cosine_similarity.item(),
+        "angle": angle.item()
+    }
+
+
 
 class CustomAdamW(Optimizer):
     """  

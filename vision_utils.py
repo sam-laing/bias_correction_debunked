@@ -87,3 +87,13 @@ def maybe_make_dir(cfg, job_idx=None):
   os.makedirs(exp_dir, exist_ok=True)
   with open(os.path.join(exp_dir, 'config.yaml'), 'w') as file:
     yaml.dump(cfg._asdict(), file, default_flow_style=False)
+
+
+def print_master(msg):
+  """Prints only in master process if using multiple GPUs."""
+  rank = os.environ.get('RANK', -1)
+  ddp = int(rank) != -1
+  master_process = (not ddp) or (int(rank) == 0)
+  
+  if master_process:
+    print(msg)

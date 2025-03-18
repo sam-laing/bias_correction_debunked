@@ -11,6 +11,8 @@ def construct_model(cfg):
         num_classes = 100
     elif cfg.dataset == "tiny_imagenet":
         num_classes = 200
+    elif cfg.dataset == "imagenet":
+        num_classes = 1000
     elif cfg.dataset == "cub":
         num_classes = 200
     else:
@@ -30,16 +32,32 @@ def construct_model(cfg):
         
     elif cfg.model == "resnet50":
         import torchvision
-        model = torchvision.models.resnet50(pretrained=False)
+        model = torchvision.models.resnet50()
     elif cfg.model == "wide_resnet50_2":
         import torchvision
-        model = torchvision.models.wide_resnet50_2(pretrained=False)
+        model = torchvision.models.wide_resnet50_2()
     elif cfg.model == "resnet101":
         import torchvision
-        model = torchvision.models.resnet101(pretrained=False)
-    
+        model = torchvision.models.resnet101()
+        
     elif cfg.model == "ViT":
-        raise NotImplementedError("ViT not implemented yet")
+        from torchvision.models import vision_transformer
+        # Need to handle smaller image size for TinyImageNet (64x64)
+        if cfg.dataset == "tiny_imagenet":
+            # Option 1: Use a smaller patch size appropriate for 64x64 images
+            model = vision_transformer.VisionTransformer(
+                image_size=64,
+                patch_size=8,  # Smaller patch size
+                num_layers=12,
+                num_heads=12,
+                hidden_dim=768,
+                mlp_dim=3072,
+                num_classes=num_classes
+            )
+        else:
+            # For larger datasets, use the pre-trained model
+            model = vision_transformer.vit_base_patch16_224_in21k(num_classes=num_classes)
+    
 
     else:
         raise NotImplementedError(f"Model {cfg.model} not implemented or misspelled")
