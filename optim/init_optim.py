@@ -10,33 +10,29 @@ def initialize_optimizer(param_groups, cfg):
         eps=cfg.eps, weight_decay=cfg.weight_decay, 
         bias_correction=cfg.do_bias_correction)
 
+
+DATASET_SIZES =  {
+    "cifar10": 50000,
+    "imagenet": 1281167,
+    "cifar100": 50000
+}
+
 def initialize_scheduler(optimizer, cfg):
     """
     Initialize a scheduler from the config file
     """
-    # infer number of training steps from cfg.epochs and cfg.batch_size 
-    num_training_steps = cfg.epochs * (cfg.batch_size + 1)
-
-    #cfg.warmup is a proportion of the total number of training steps
-
-
-    if cfg.scheduler == "linear":
-        from transformers import get_linear_schedule_with_warmup
-        return get_linear_schedule_with_warmup(
-            optimizer, num_warmup_steps=int(cfg.warmup * num_training_steps), num_training_steps=num_training_steps
-        )
-    elif cfg.scheduler == "cosine":
-        from transformers import get_cosine_schedule_with_warmup
-        return get_cosine_schedule_with_warmup(
-            optimizer, num_warmup_steps=int(cfg.warmup * num_training_steps), num_training_steps=num_training_steps
-        )
-    elif cfg.scheduler == "constant":
-        # basically like having no scheduler but general so scheduler.step() always called
-        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: 1)
+    if cfg.scheduler is None:
+        return None
     
-    elif cfg.scheduler == "step":
-        return torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
 
-    else:
-        raise NotImplementedError(f"Scheduler {cfg.scheduler} not implemented or misspelled")
+    
+    # i would like to infer the total number of steps based on batch size, epochs and dataset type
+    if cfg.dataset == "cifar10":
+        total_steps = (40000 // cfg.batch_size + 1) * cfg.epochs
+        
 
+    
+    if cfg.warmup_steps is not None:
+
+
+        warmup_steps = cfg.warmup_steps

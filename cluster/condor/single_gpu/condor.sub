@@ -1,11 +1,13 @@
 
-
 LOGS_DIR=/home/slaing/bias_correction_debunked/logs
 executable=/home/slaing/bias_correction_debunked/cluster/condor/single_gpu/run.sh  
 
 # job vars
 config=/home/slaing/bias_correction_debunked/config/config.yaml
 n_jobs=1
+
+# pass arguments 
+arguments = $(config) $(Process)
 
 # logs
 error = $(LOGS_DIR)/err/job.$(Cluster).$(Process).err

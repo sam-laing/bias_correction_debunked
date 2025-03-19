@@ -5,7 +5,7 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.parallel import DistributedDataParallel as DDP
 from contextlib import nullcontext
 
-from models.vision_models.constuct import construct_model
+from models.vision_models.construct import construct_model
 from optim import initialize_optimizer, initialize_scheduler
 
 class TorchEngine(torch.nn.Module):

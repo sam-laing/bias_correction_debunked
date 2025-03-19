@@ -54,7 +54,7 @@ def construct_model(cfg):
                 mlp_dim=3072,
                 num_classes=num_classes
             )
-        else:
+        elif cfg.dataset == "imagenet":
             # For larger datasets, use the pre-trained model
             model = vision_transformer.vit_base_patch16_224_in21k(num_classes=num_classes)
     

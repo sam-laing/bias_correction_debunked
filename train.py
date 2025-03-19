@@ -12,7 +12,7 @@ from collections import defaultdict
 
 import vision_utils
 from torch_utils import pytorch_setup, destroy_ddp
-from models.vision_models import construct_model
+from models.vision_models.construct import construct_model
 
 import yaml  
 from data import get_dataloaders
@@ -32,47 +32,40 @@ def main(_):
 
     train_loader, val_loader, test_loader = get_dataloaders(cfg, local_rank, world_size)
 
+    print("Train loader loaded")
+
+    # construct a model 
     model = construct_model(cfg)
+    print("Model constructed")
 
     criterion = nn.CrossEntropyLoss()
 
     optimizer = initialize_optimizer(model.parameters(), cfg)
-    scheduler = initialize_scheduler(optimizer, cfg)
+    # do a test batch
+    for i, (x, y) in enumerate(train_loader):
+        x, y = x.to(device), y.to(device)
+        optimizer.zero_grad()
+        out = model(x)
+        loss = criterion(out, y)
+        loss.backward()
+        optimizer.step()
+        print(out.shape)
+        print(y.shape)
+        print(loss)
+        break
     
+    print("Tests passed")
 
-
-
+    #compute total number of steps
     
+    #scheduler = initialize_scheduler(optimizer, cfg)
 
 
-
-
+    #engine = TorchEngine(model, optimizer, criterion, cfg, device, local_rank, world_size, master_process)
 
 
 
 
 if __name__ == "__main__":
 
-
-
-    app.run(main)
-
-
-
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
     app.run(main)
