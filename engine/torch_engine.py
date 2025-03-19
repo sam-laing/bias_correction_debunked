@@ -12,11 +12,11 @@ class TorchEngine(torch.nn.Module):
     def __init__(self, cfg, model, optimizer, criterion, scheduler=None, device=torch.device('cuda')):
         super(TorchEngine, self).__init__()
         self.cfg = cfg
-        self.model = model
+        self.device = device
+        self.model = model.to(device)
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
-        self.device = device
 
     def forward(self, x):
         return self.model(x)

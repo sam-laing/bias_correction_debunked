@@ -60,17 +60,35 @@ def main(_):
         print(loss)
         break
     
-    print("Tests passed")
 
     #compute total number of steps
     
-    #scheduler = initialize_scheduler(optimizer, cfg)
+    scheduler = initialize_scheduler(optimizer, cfg)
+
+    print("making the engine")
+    engine = TorchEngine(
+        cfg=cfg,
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        scheduler=scheduler,  # Pass the scheduler if you have one
+        device=device
+    )
+    print("engine made")
+    print("training an epoch")
+    epoch_loss = engine.train_one_epoch(train_loader)
+    print(epoch_loss)
+    print("training done")
+    print("validating")
+    val_loss, acc = engine.validate(val_loader)
+    print(val_loss)
+    print(acc)
+
+    print("validation done")
 
 
-    #engine = TorchEngine(model, optimizer, criterion, cfg, device, local_rank, world_size, master_process)
 
-
-
+    print("Tests passed")
 
 if __name__ == "__main__":
 

@@ -20,7 +20,7 @@ do_bias_correction: false
 
 # Scheduler Configuration
 scheduler: "warmup_cosine" 
-warmup: 0.1  # Proportion of training steps for warmup
+warmup_steps: 0.1  # Proportion of training steps for warmup
 lr_start: 0.0  # Start learning rate for warmup
 lr_end: 1.e-5
 cooldown_steps: null
