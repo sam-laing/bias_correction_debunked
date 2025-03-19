@@ -15,7 +15,7 @@ from torch_utils import pytorch_setup, destroy_ddp
 from models.vision_models.construct import construct_model
 
 import yaml  
-from data import get_dataloaders
+from data.vision_datasets.dataloaders import get_loaders
 # purely for debugging on interactive node
 from dataclasses import dataclass
 from typing import Optional, Literal
@@ -27,10 +27,12 @@ FLAGS = flags.FLAGS
 
 def main(_):
     CFG_PATH, JOB_IDX = FLAGS.config, FLAGS.job_idx
-    cfg = vision_utils.load_config(CFG_PATH, JOB_IDX)
+    #cfg = vision_utils.load_config(CFG_PATH, JOB_IDX)
+    # In train.py
+    cfg, _ = vision_utils.load_config(CFG_PATH, JOB_IDX)
     local_rank, world_size, device, master_process = pytorch_setup(cfg)
 
-    train_loader, val_loader, test_loader = get_dataloaders(cfg, local_rank, world_size)
+    train_loader, val_loader, test_loader = get_loaders(cfg)
 
     print("Train loader loaded")
 
@@ -41,6 +43,9 @@ def main(_):
     criterion = nn.CrossEntropyLoss()
 
     optimizer = initialize_optimizer(model.parameters(), cfg)
+    print("Optimizer initialized")
+
+    print("Starting training loop test")
     # do a test batch
     for i, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)

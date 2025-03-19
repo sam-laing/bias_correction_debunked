@@ -8,7 +8,7 @@ def initialize_optimizer(param_groups, cfg):
     return CustomAdamW(
         param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
         eps=cfg.eps, weight_decay=cfg.weight_decay, 
-        bias_correction=cfg.do_bias_correction)
+        do_bias_correction=cfg.do_bias_correction)
 
 
 DATASET_SIZES =  {
@@ -36,3 +36,6 @@ def initialize_scheduler(optimizer, cfg):
 
 
         warmup_steps = cfg.warmup_steps
+
+
+    return None

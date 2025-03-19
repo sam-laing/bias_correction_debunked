@@ -21,13 +21,13 @@ def construct_model(cfg):
 
     #cifar models
     if cfg.model == "resnet20":
-        from vision_models.resnet_cifar import make_resnet_cifar 
+        from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=20, num_classes=num_classes)
     elif cfg.model == "resnet32":
-        from vision_models.resnet_cifar import make_resnet_cifar 
+        from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=32, num_classes=num_classes)
     elif cfg.model == "resnet56":
-        from vision_models.resnet_cifar import make_resnet_cifar 
+        from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=56, num_classes=num_classes)
         
     elif cfg.model == "resnet50":
