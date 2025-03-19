@@ -38,6 +38,7 @@ def main(_):
 
     # construct a model 
     model = construct_model(cfg)
+    model = model.to(device)
     print("Model constructed")
 
     criterion = nn.CrossEntropyLoss()
