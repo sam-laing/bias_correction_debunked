@@ -91,7 +91,7 @@ class CustomAdamW(Optimizer):
 
                 # Apply weight decay (decoupled as in AdamW)
                 if group["weight_decay"] != 0:
-                    grad = grad.add(p.data, alpha=group["weight_decay"])
+                    p.data.mul_(1 - group["lr"] * group["weight_decay"])
 
                 state = self.state[p]
 

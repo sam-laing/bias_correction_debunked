@@ -5,12 +5,6 @@ def initialize_optimizer(param_groups, cfg):
     """
     Initialize an optimizer from the config file
     """
-    if cfg.do_bias_correction:
-        return torch.optim.AdamW(
-            param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
-            eps=cfg.eps, weight_decay=cfg.weight_decay
-        )
-
     return CustomAdamW(
         param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
         eps=cfg.eps, weight_decay=cfg.weight_decay, 
