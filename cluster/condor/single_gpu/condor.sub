@@ -4,7 +4,7 @@ executable=/home/slaing/bias_correction_debunked/cluster/condor/single_gpu/run.s
 
 # job vars
 config=/home/slaing/bias_correction_debunked/config/config.yaml
-n_jobs=1
+n_jobs=2
 
 # pass arguments 
 arguments = $(config) $(Process)

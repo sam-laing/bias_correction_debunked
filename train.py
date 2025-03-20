@@ -32,6 +32,12 @@ def main(_):
     cfg, _ = vision_utils.load_config(CFG_PATH, JOB_IDX)
     local_rank, world_size, device, master_process = pytorch_setup(cfg)
 
+    #if master_process:
+    #   vision_utils.maybe_make_dir(cfg, JOB_IDX)
+
+    if cfg.use_wandb and master_process:
+        vision_utils.init_wandb(cfg)
+
     train_loader, val_loader, test_loader = get_loaders(cfg)
 
     print("Train loader loaded")
@@ -46,23 +52,20 @@ def main(_):
     optimizer = initialize_optimizer(model.parameters(), cfg)
     print("Optimizer initialized")
 
-    print("Starting training loop test")
-    # do a test batch
-    for i, (x, y) in enumerate(train_loader):
-        x, y = x.to(device), y.to(device)
-        optimizer.zero_grad()
-        out = model(x)
-        loss = criterion(out, y)
-        loss.backward()
-        optimizer.step()
-        print(out.shape)
-        print(y.shape)
-        print(loss)
-        break
+    """
+    #count the number of each class label in the validation set
+    class_counts = defaultdict(int)
+    for i, (x, y) in enumerate(val_loader):
+        for label in y:
+             class_counts[label.item()] += 1
+    print("Class counts in validation set")
+    print(class_counts)
+    """
+
     
 
     #compute total number of steps
-    
+
     scheduler = initialize_scheduler(optimizer, cfg)
 
     print("making the engine")
@@ -75,21 +78,33 @@ def main(_):
         device=device
     )
     print("engine made")
-    print("training an epoch")
-    epoch_loss = engine.train_one_epoch(train_loader)
-    print(epoch_loss)
-    print("training done")
-    print("validating")
-    val_loss, acc = engine.validate(val_loader)
-    print(val_loss)
-    print(acc)
 
-    print("validation done")
+    print("====== Starting the training loop ======")
+
+    for epoch in range(cfg.epochs):
+        train_loss = engine.train_one_epoch(train_loader)
+        val_loss, val_accuracy = engine.validate(val_loader)
+        lr = optimizer.param_groups[0]['lr']
+        if cfg.use_wandb and master_process:
+            vision_utils.log(cfg, epoch, train_loss, val_loss, val_accuracy, lr)
+        if master_process:
+            print(f"Epoch: {epoch} Step:  Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_accuracy}")
+
+    print("====== Training finished ======")
+
+    #test
+    test_loss, test_accuracy = engine.validate(test_loader)
+    if master_process:
+        print(f"Test Loss: {test_loss} Test Accuracy: {test_accuracy}")
+
+    test_loss, test_accuracy = engine.validate(test_loader)
+    if master_process:
+        print(f"Test Loss: {test_loss} Test Accuracy: {test_accuracy}")
+    
+    if cfg.use_wandb:
+        vision_utils.log_test_summary(cfg, test_loss, test_accuracy)
 
 
-
-    print("Tests passed")
 
 if __name__ == "__main__":
-
     app.run(main)

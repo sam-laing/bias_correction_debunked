@@ -7,7 +7,6 @@ def construct_model(cfg):
     if cfg.dataset == "cifar10": 
         num_classes = 10
     elif cfg.dataset == "cifar100":
-        from vision_models.resnet_cifar import make_resnet_cifar
         num_classes = 100
     elif cfg.dataset == "tiny_imagenet":
         num_classes = 200
@@ -15,6 +14,8 @@ def construct_model(cfg):
         num_classes = 1000
     elif cfg.dataset == "cub":
         num_classes = 200
+    elif cfg.dataset == "svhn":
+        num_classes = 10
     else:
         raise NotImplementedError(f"Dataset {cfg.dataset} not implemented or misspelled")
 
@@ -32,13 +33,13 @@ def construct_model(cfg):
         
     elif cfg.model == "resnet50":
         import torchvision
-        model = torchvision.models.resnet50()
+        model = torchvision.models.resnet50(num_classes=num_classes)
     elif cfg.model == "wide_resnet50_2":
         import torchvision
-        model = torchvision.models.wide_resnet50_2()
+        model = torchvision.models.wide_resnet50_2(num_classes=num_classes) 
     elif cfg.model == "resnet101":
         import torchvision
-        model = torchvision.models.resnet101()
+        model = torchvision.models.resnet101(num_classes=num_classes)
         
     elif cfg.model == "ViT":
         from torchvision.models import vision_transformer

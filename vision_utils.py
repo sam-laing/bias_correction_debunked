@@ -12,9 +12,10 @@ def init_wandb(cfg):
   #os.environ["WANDB_API_KEY"] = cfg.wandb_api_key
   os.environ["WANDB__SERVICE_WAIT"] = "600"
   os.environ["WANDB_SILENT"] = "true"
-  wandb_run_name = f"bias_corr={cfg.do_bias_correction}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
+  wandb_run_name = f"{cfg.model}, bias_corr={cfg.do_bias_correction}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
   wandb.init(
-    project=cfg.wandb_project, 
+    project=cfg.wandb_project,
+    group=cfg.dataset, 
     name=wandb_run_name, 
     dir=cfg.wandb_dir,
     config=cfg._asdict()
@@ -58,9 +59,19 @@ def log(cfg, epoch, train_loss, val_loss, val_accuracy, lr):
     'lr': lr
   }, step=epoch)
 
-  print(f"Epoch: {epoch} Step:  Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_accuracy}")
+  #print(f"Epoch: {epoch} Step:  Train Loss: {train_loss} Val Loss: {val_loss} Val Acc: {val_accuracy}")
 
-
+def log_test_summary(cfg, test_loss, test_accuracy):
+  """Logs test metrics to wandb"""
+  wandb.log({
+    'test_loss': test_loss,
+    'test_accuracy': test_accuracy
+  }, step=cfg.epochs)
+  
+  wandb.run.summary["final_test_loss"] = test_loss
+  wandb.run.summary["final_test_accuracy"] = test_accuracy
+  wandb.run.summary["optimizer"] = cfg.optimizer if hasattr(cfg, 'optimizer') else "adam"
+  wandb.run.summary["bias_correction"] = cfg.do_bias_correction
 
 
 
@@ -72,7 +83,7 @@ def maybe_make_dir(cfg, job_idx=None):
   if cfg.resume and cfg.resume_exp_name is None:  # if resuming from the same exp
     return
   
-  exp_name = f"bias_corr={cfg.do_bias_correction}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
+  exp_name = f"{cfg.model}, bias_corr={cfg.do_bias_correction}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, b1={cfg.beta1}, b2={cfg.beta2}"
   exp_dir = os.path.join(cfg.out_dir, exp_name)
   if job_idx is not None:  # subfolder for each job in the sweep
     exp_dir = os.path.join(exp_dir, f"job_idx_{job_idx}")

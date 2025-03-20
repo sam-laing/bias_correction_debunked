@@ -1,22 +1,22 @@
 # Dataset Configuration
-dataset: "cifar10"  # Options: cifar10, cifar100, svhn, tiny_imagenet, imagenet
-data_dir: "/fast/slaing/data/vision/cifar10"
+dataset: "svhn"  # Options: cifar10, cifar100, svhn, tiny_imagenet, imagenet
+#data_dir: "/fast/slaing/data/vision/tiny-imagenet-200"
 batch_size: 64
 num_workers: 4
 
 # Model Configuration
-model: "resnet20"  # Options: resnet18, resnet50, wide_resnet50_2, resnet101, ViT, basic_cnn
+model: "resnet20"  # Options:  resnet stuff, ViT, basic_cnn, VGG
 
 # Training Parameters
-epochs: 100
+epochs: 30
 lr: 0.001
 weight_decay: 0.01
 beta1: 0.9
 beta2: 0.999
 eps: 1.e-8
-do_bias_correction: false
+do_bias_correction: [true, false]
 
-
+over_write: true
 
 # Scheduler Configuration
 scheduler: "warmup_cosine" 
@@ -26,15 +26,15 @@ lr_end: 1.e-5
 cooldown_steps: null
 
 # Logging Configuration
-use_wandb: false
+use_wandb: true
 wandb_project: "bias_correction_experiments"
 wandb_dir: "./wandb_logs"
 wandb_api_key: ""  # Leave empty to use environment variable or wandb login
 out_dir: "/fast/slaing/exp/vision"
+
 # Checkpoint Configuration
 save_intermediate_checkpoints: false
 save_last_checkpoint: true
-out_dir: "./checkpoints"
 resume: false
 resume_exp_name: null
 over_write: false
