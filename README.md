@@ -1,6 +1,6 @@
 # Debunking the Bias Correction Necessity Myth
 
-Implementations of Adam(W) all apply bias-correction to the EMA statistics. The claim is that doing so prevents a bias in the early updates of the optimizer. Most resources quote some variation of the following proof when it comes to claiming the necessity of bias correction:
+Implementations of Adam(W) all apply bias-correction to the EMA statistics. The claim is that doing so prevents a bias in the early updates of the optimizer. Most resources [e.g](https://stats.stackexchange.com/questions/366076/understanding-a-derivation-of-bias-correction-for-the-adam-optimizer) quote some variation of the following proof when it comes to claiming the necessity of bias correction:
 
 $$E[m^{t}] = E\left[ (1-\beta_1) \sum_{i=0}^{t-1} {\beta_1^{t-i-1} g_i}\right]$$
 
