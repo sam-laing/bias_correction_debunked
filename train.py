@@ -38,6 +38,8 @@ def main(_):
     if cfg.use_wandb and master_process:
         vision_utils.init_wandb(cfg)
 
+    print("Bias Correction set to", cfg.do_bias_correction)
+
     train_loader, val_loader, test_loader = get_loaders(cfg)
 
     print("Train loader loaded")
