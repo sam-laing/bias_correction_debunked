@@ -1,47 +1,12 @@
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
-
-from torch import Tensor
-
-Params = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
-
-LossClosure = Callable[[], float]
-OptLossClosure = Optional[LossClosure]
-Betas2 = Tuple[float, float]
-State = Dict[str, Any]
-OptFloat = Optional[float]
-Nus2 = Tuple[float, float]
-
-
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
-import math
-
+Params = Union[Iterable[torch.Tensor], Iterable[Dict[str, Any]]]
+LossClosure = Callable[[], float]
+Betas2 = Tuple[float, float]
 ParamGroup = Dict[str, Any]
-
-
-def compute_statistics(t1: torch.Tensor, t2: torch.Tensor) -> Dict[str, float]:
-    t1, t2 = t1.view(-1), t2.view(-1)
-
-    norm1= torch.norm(t1)
-    norm2= torch.norm(t2)
-
-    inner_product = torch.dot(t1, t2)
-    cosine_similarity = inner_product / (norm1 * norm2)
-    cosine_similarity = max(min(cosine_similarity, 1.0), -1.0)
-
-    angle = torch.acos(cosine_similarity) * 180 / 3.14159265359
-
-    return {
-        "inner_product": inner_product.item(),
-        "norm_1": norm1.item(),
-        "norm_2": norm2.item(),
-        "cosine_similarity": cosine_similarity.item(),
-        "angle": angle.item()
-    }
-
-
 
 class CustomAdamW(Optimizer):
     """
@@ -59,13 +24,13 @@ class CustomAdamW(Optimizer):
         weight_decay: float = 0.0,
     ):
         if lr <= 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError(f"Invalid learning rate: {lr}")
         if not 0.0 <= betas[0] < 1.0:
-            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+            raise ValueError(f"Invalid beta parameter at index 0: {betas[0]}")
         if not 0.0 <= betas[1] < 1.0:
-            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+            raise ValueError(f"Invalid beta parameter at index 1: {betas[1]}")
         if weight_decay < 0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError(f"Invalid weight_decay value: {weight_decay}")
 
         defaults = dict(
             lr=lr,
@@ -76,7 +41,8 @@ class CustomAdamW(Optimizer):
         )
         super().__init__(params, defaults)
 
-    def step(self, closure: LossClosure = None):
+    @torch.no_grad()
+    def step(self, closure: LossClosure = None) -> Optional[float]:
         loss = None
         if closure is not None:
             loss = closure()
@@ -107,7 +73,6 @@ class CustomAdamW(Optimizer):
 
                 exp_avg = state["exp_avg"]
                 exp_avg_sq = state["exp_avg_sq"]
-
                 beta1, beta2 = group["betas"]
                 state["step"] += 1
 
@@ -115,12 +80,18 @@ class CustomAdamW(Optimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
-                # Bias correction if enabled
+                # Compute bias-corrected terms if needed
                 if group["do_bias_correction"]:
-                    exp_avg.div_(1 - beta1 ** state["step"])
-                    exp_avg_sq.div_(1 - beta2 ** state["step"])
+                    bias_correction1 = 1 - beta1 ** state["step"]
+                    bias_correction2 = 1 - beta2 ** state["step"]
+                    exp_avg_corrected = exp_avg / bias_correction1
+                    exp_avg_sq_corrected = exp_avg_sq / bias_correction2
+                else:
+                    exp_avg_corrected = exp_avg
+                    exp_avg_sq_corrected = exp_avg_sq
 
                 # Parameter update
-                p.data.addcdiv_(exp_avg, exp_avg_sq.sqrt().add_(group["eps"]), value=-group["lr"])
+                denom = exp_avg_sq_corrected.sqrt().add_(group["eps"])
+                p.data.addcdiv_(exp_avg_corrected, denom, value=-group["lr"])
 
         return loss
