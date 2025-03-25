@@ -12,3 +12,4 @@ logs
 
 # ignore a file called debug.py
 debug.py
+interactive_job.sh
