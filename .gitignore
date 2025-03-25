@@ -4,3 +4,11 @@
 # hide all logs
 *.logs
 logs
+ 
+
+
+
+
+
+# ignore a file called debug.py
+debug.py
