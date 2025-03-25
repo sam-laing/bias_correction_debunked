@@ -58,6 +58,17 @@ def construct_model(cfg):
         elif cfg.dataset == "imagenet":
             # For larger datasets, use the pre-trained model
             model = vision_transformer.vit_base_patch16_224_in21k(num_classes=num_classes)
+
+        elif cfg.dataset == "cifar10":
+            model = vision_transformer.VisionTransformer(
+                image_size=32,
+                patch_size=4,
+                num_layers=6,
+                num_heads=8,
+                hidden_dim=256,
+                mlp_dim=512,
+                num_classes=num_classes
+            )
     
 
     else:

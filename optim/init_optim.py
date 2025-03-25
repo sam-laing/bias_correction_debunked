@@ -1,4 +1,5 @@
 from optim import CustomAdamW
+from torch.optim import Optimizer
 import torch
 
 def initialize_optimizer(param_groups, cfg):
@@ -11,13 +12,9 @@ def initialize_optimizer(param_groups, cfg):
         do_bias_correction=cfg.do_bias_correction)
 
 
-DATASET_SIZES =  {
-    "cifar10": 50000,
-    "imagenet": 1281167,
-    "cifar100": 50000
-}
 
-def initialize_scheduler(optimizer, cfg):
+
+def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
     """
     Initialize a scheduler from the config file
     """
@@ -27,15 +24,76 @@ def initialize_scheduler(optimizer, cfg):
 
     
     # i would like to infer the total number of steps based on batch size, epochs and dataset type
-    if cfg.dataset == "cifar10":
-        total_steps = (40000 // cfg.batch_size + 1) * cfg.epochs
-        
 
     
-    if cfg.warmup_steps is not None:
+    if cfg.scheduler == "warmup_cosine":
+        # check if lr_start, lr_max, lr_end are defined in cfg
+        assert cfg.warmup_steps is not None, "warmup_steps must be defined if warmup_steps is defined"
+        assert cfg.lr_start is not None, "lr_start must be defined if warmup_steps is defined"
+        #assert cfg.lr_max is not None, "lr_max must be defined if warmup_steps is defined"
+        assert cfg.lr_end is not None, "lr_end must be defined if warmup_steps is defined"
+        
+        from .lr_schedule import WarmupCosine
+        warmup_steps = cfg.warmup_steps * optim_steps # proportion of total steps x total steps
+        
+        return WarmupCosine(
+            optimizer=optimizer,
+            lr_start=cfg.lr_start,
+            lr_max=cfg.lr,
+            lr_end=cfg.lr_end,
+            warmup_steps=warmup_steps,
+            T=optim_steps
+        )
+    
+    elif cfg.scheduler == "warmup_step":
+        assert cfg.warmup_steps is not None, "warmup_steps must be defined if warmup_steps is defined"
+        assert cfg.lr_start is not None, "lr_start must be defined if warmup_steps is defined"
+        assert cfg.step_size is not None, "step_size must be defined if warmup_steps is defined"
+        assert cfg.gamma is not None, "gamma must be defined if warmup_steps is defined"
+        
+        from .lr_schedule import WarmupStep
+        warmup_steps = cfg.warmup_steps * optim_steps
+        return WarmupStep(
+            optimizer=optimizer,
+            lr_start=cfg.lr_start,
+            lr_max=cfg.lr,
+            lr_end=cfg.lr_end,
+            warmup_steps=warmup_steps,
+            step_size=cfg.step_size,
+            gamma=cfg.gamma
+        )
+        
+    elif cfg.scheduler == "wsd":
+        # check if lr_start, lr_max, lr_end are defined in cfg
+        assert cfg.warmup_steps is not None, "warmup_steps must be defined if warmup_steps is defined"
+        assert cfg.lr_start is not None, "lr_start must be defined if warmup_steps is defined"
+        assert cfg.lr_end is not None, "lr_end must be defined if warmup_steps is defined"
+        assert cfg.cooldown_start_step is not None, "cooldown_start_step must be defined if wsd is defined"
+        assert cfg.cooldown_steps is not None, "cooldown_steps must be defined if wsd is defined"
+        
+        from .lr_schedule import WSD
+        warmup_steps = cfg.warmup_steps * optim_steps
+        cooldown_start_step = cfg.cooldown_start_step * optim_steps
+        cooldown_steps = cfg.cooldown_steps * optim_steps
 
+        return WSD(
+            optimizer=optimizer,
+            lr_start=cfg.lr_start,
+            lr_end=cfg.lr_end,
+            warmup_steps=warmup_steps,
+            cooldown_start_step=cooldown_start_step,
+            cooldown_steps=cooldown_steps
+        )
 
-        warmup_steps = cfg.warmup_steps
+    elif cfg.scheduler == "step":
+        assert cfg.step_size is not None, "step_size must be defined if step is defined"
+        assert cfg.gamma is not None, "gamma must be defined if step is defined"
+        
+        from torch.optim.lr_scheduler import StepLR
+        return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
+    
+    
+
 
 
     return None

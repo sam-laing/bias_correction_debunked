@@ -67,8 +67,8 @@ def main(_):
     
 
     #compute total number of steps
-
-    scheduler = initialize_scheduler(optimizer, cfg)
+    optim_steps = (len(train_loader) + 1) * cfg.epochs
+    scheduler = initialize_scheduler(optimizer, optim_steps, cfg)
 
     print("making the engine")
     engine = TorchEngine(
@@ -85,7 +85,9 @@ def main(_):
 
     for epoch in range(cfg.epochs):
         train_loss = engine.train_one_epoch(train_loader)
-        val_loss, val_accuracy = engine.validate(val_loader)
+        val_loss, val_accuracy = None, None
+        if len(val_loader) != 0:
+            val_loss, val_accuracy = engine.validate(val_loader)
         lr = optimizer.param_groups[0]['lr']
         if cfg.use_wandb and master_process:
             vision_utils.log(cfg, epoch, train_loss, val_loss, val_accuracy, lr)

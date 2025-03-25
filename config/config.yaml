@@ -1,7 +1,10 @@
+deterministic: true
+sampler_seed: 66
+
 # Dataset Configuration
 dataset: "cifar10"  # Options: cifar10, cifar100, svhn, tiny_imagenet, imagenet
 #data_dir: "/fast/slaing/data/vision/tiny-imagenet-200"
-batch_size: 64
+batch_size: 512
 num_workers: 4
 
 # Model Configuration
@@ -9,7 +12,7 @@ model: "resnet20"  # Options:  resnet stuff, ViT, basic_cnn, VGG
 
 # Training Parameters
 epochs: 30
-lr: 0.001
+lr: 0.005
 weight_decay: 0.01
 beta1: 0.9
 beta2: 0.999
@@ -19,10 +22,12 @@ do_bias_correction: [true, false]
 over_write: true
 
 # Scheduler Configuration
-scheduler: "warmup_cosine" 
+scheduler: warmup_step  # Options: warmup_cosine, warmup_linear, warmup_constant, cosine, warmup_step, exponential 
 warmup_steps: 0.1  # Proportion of training steps for warmup
 lr_start: 0.0  # Start learning rate for warmup
 lr_end: 1.e-5
+cfg.step_size: 10
+cfg.gamma: 0.5
 cooldown_steps: null
 
 # Logging Configuration

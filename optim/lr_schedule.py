@@ -104,3 +104,55 @@ class WarmupConstant(object):
   def load_state_dict(self, state_dict):
     self.__dict__.update(state_dict)
 
+
+class WarmupStep(object):
+    """   
+    Linear warmup for a certain number of steps, followed by step decay at fixed intervals.
+    The learning rate is reduced by a factor of gamma every step_size steps after warmup.
+    """
+
+    def __init__(
+        self, optimizer, lr_start, lr_max, lr_end, warmup_steps, step_size, gamma
+    ):
+        self.optimizer = optimizer
+        self.lr_start = lr_start
+        self.lr_max = lr_max  # Peak LR after warmup
+        self.lr_end = lr_end  # Minimum LR
+        self.warmup_steps = warmup_steps
+        self.step_size = step_size  # Steps between decay
+        self.gamma = gamma  # Decay factor
+        self.iter = 0
+        
+        # Initialize optimizer with starting learning rate
+        for group in self.optimizer.param_groups:
+            group["lr"] = lr_start
+
+    def schedule(self, t):
+        """returns lr(t), where t is the current step"""
+        if t <= self.warmup_steps:
+            # Linear warmup phase
+            return self.lr_start + (self.lr_max - self.lr_start) / self.warmup_steps * t
+        else:
+            # Step decay phase - reduce by gamma factor every step_size steps
+            post_warmup_steps = t - self.warmup_steps
+            # Calculate which step "plateau" we're on
+            step_index = post_warmup_steps // self.step_size
+            # Apply gamma reduction for each step
+            lr = self.lr_max * (self.gamma ** step_index)
+            # Ensure we don't go below minimum LR
+            return max(lr, self.lr_end)
+
+    def step(self):
+        """computes new lr and sets it in self.optimizer"""
+        self.iter += 1
+        lr = self.schedule(self.iter)
+        for group in self.optimizer.param_groups:
+            group["lr"] = lr
+
+    def state_dict(self):
+        """Returns scheduler state for checkpointing"""
+        return {key: value for key, value in self.__dict__.items() if key != "optimizer"}
+
+    def load_state_dict(self, state_dict):
+        """Loads scheduler state from checkpoint"""
+        self.__dict__.update(state_dict)
