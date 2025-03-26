@@ -162,9 +162,7 @@ class ResNetCIFAR(nn.Module):
         self.num_features = 64 * block.expansion * width_multiplier
         self.down_type = down_type
 
-        assert (
-            depth - 2
-        ) % 6 == 0, "depth should be 6n+2 (e.g., 20, 32, 44, 56, 110, 1202)"
+        assert (depth - 2) % 6 == 0, "depth should be 6n+2 (e.g., 20, 32, 44, 56, 110, 1202)"
         n = (depth - 2) // 6
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
