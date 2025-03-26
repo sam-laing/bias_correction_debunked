@@ -49,11 +49,12 @@ def construct_model(cfg):
             model = vision_transformer.VisionTransformer(
                 image_size=64,
                 patch_size=8,  # Smaller patch size
-                num_layers=12,
-                num_heads=12,
-                hidden_dim=768,
-                mlp_dim=3072,
-                num_classes=num_classes
+                num_layers=8,
+                num_heads=8,
+                hidden_dim=512,
+                mlp_dim=2048,
+                num_classes=num_classes, 
+                dropout=0.1,
             )
         elif cfg.dataset == "imagenet":
             # For larger datasets, use the pre-trained model
