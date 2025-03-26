@@ -83,8 +83,12 @@ Our preliminary findings strongly indicate that:
 ---
 
 **Repository structure:**
-- `optim/`: Custom optimizer implementations
-- `models/`: Model architectures for various domains
-- `data/`: Dataset loaders and preprocessing
-- `experiments/`: Scripts to reproduce our results
-- `analysis/`: Statistical analysis and visualization tools
+- `optim/`: Custom AdamW implementation with a number of schedulers. 
+- `models/`: Model architectures for various domains with a construct_model() function 
+- `data/`: Dataset loaders and preprocessing with a get_loaders() 
+
+
+
+
+
+
