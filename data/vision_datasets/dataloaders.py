@@ -1,16 +1,58 @@
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, SequentialSampler, RandomSampler
 from torchvision import datasets, transforms
 import torchvision
-from typing import Any, Tuple
+from typing import Any, Tuple, Callable, Optional
 import os
 import torch
 import numpy as np
+import random
 from sklearn.model_selection import StratifiedShuffleSplit
+from data.vision_datasets.datasamplers import StatefulSequentialSampler, StatefulDistributedSampler
+from torch import distributed as dist
+from torch.utils.data.distributed import DistributedSampler
+from datasets import load_from_disk
+
+
+
+def get_loaders(cfg) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """
+    Return a train, val and test loader defined under cfg.dataset attribute
+
+    uses a load of helper functions below
+
+    """
+    # make CUDA operations deterministic if requested
+    if hasattr(cfg, 'deterministic') and cfg.deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    #set the random seed for reproducibility with cfg.sampler_seed
+    if cfg.sampler_seed is not None:
+        torch.manual_seed(cfg.sampler_seed)
+        np.random.seed(cfg.sampler_seed)
+        random.seed(cfg.sampler_seed)
+        
+    
+    if cfg.dataset == "cifar10":
+        return _get_cifar10_loaders(cfg)
+    elif cfg.dataset == "cifar100":
+        return _get_cifar100_loaders(cfg)
+    elif cfg.dataset == "svhn":
+        return _get_svhn_loaders(cfg)
+    elif cfg.dataset == "tiny_imagenet":
+        return _get_tinyimagenet_loaders(cfg)
+    elif cfg.dataset == "imagenet":
+        return _get_imagenet_loaders(cfg)
+    elif cfg.dataset == "cub":
+        return _get_cub_loaders(cfg)
+    else:
+        raise NotImplementedError(f"Dataset {cfg.dataset} not implemented or misspelled")
+    
+
+
+
 
 # Base directory for all datasets
-data_dir = "/fast/slaing/data/vision/"
-
-# Dataset directory name mappings
 dataset_names = {
     "cifar10": "cifar10", 
     "cifar100": "cifar100",
@@ -19,8 +61,18 @@ dataset_names = {
     "cub": "CUB_200_2011"
 }
 
+def seed_worker(worker_id: int) -> None:
+    """
+    Worker initialization function to set seeds for worker processes.
+    Makes DataLoader workers deterministic.
+    """
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 def get_dataset_path(cfg):
     """Get the full path to the dataset directory"""
+    data_dir = "/fast/slaing/data/vision/"
     if cfg.dataset == "imagenet":
         return "/fast/najroldi/data/imagenet/"
     if hasattr(cfg, 'data_dir') and cfg.data_dir:
@@ -67,26 +119,62 @@ def stratified_split(dataset, val_ratio=0.2, random_state=None):
     
     return train_indices, val_indices
 
-def get_loaders(cfg) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """
-    Return a train, val and test loader defined under cfg.dataset attribute
-    """
-    # Set the random seed for reproducibility with cfg.seed
-    torch.manual_seed(cfg.seed)
-    np.random.seed(cfg.seed)
+def create_deterministic_loader(
+    dataset, 
+    cfg, 
+    batch_size=None, 
+    shuffle=False, 
+    drop_last=False,
+    generator=None
+):
+    """Create a dataloader with deterministic settings if requested"""
+    batch_size = batch_size or cfg.batch_size
+    ddp = dist.is_initialized()
     
-    if cfg.dataset == "cifar10":
-        return _get_cifar10_loaders(cfg)
-    elif cfg.dataset == "cifar100":
-        return _get_cifar100_loaders(cfg)
-    elif cfg.dataset == "svhn":
-        return _get_svhn_loaders(cfg)
-    elif cfg.dataset == "tiny_imagenet":
-        return _get_tinyimagenet_loaders(cfg)
-    elif cfg.dataset == "cub":
-        return _get_cub_loaders(cfg)
+    # Create a deterministic random generator if needed
+    if cfg.deterministic and generator is None:
+        generator = torch.Generator()
+        generator.manual_seed(cfg.sampler_seed)
+    
+    if ddp:
+        # Distributed data parallel mode
+        if cfg.deterministic:
+            sampler = DistributedSampler(
+                dataset, 
+                shuffle=shuffle,
+                seed=cfg.sampler_seed,
+                drop_last=drop_last
+            )
+        else:
+            sampler = DistributedSampler(
+                dataset, 
+                shuffle=shuffle,
+                drop_last=drop_last
+            )
+        shuffle = False  # Don't use shuffle with DistributedSampler
+    elif cfg.deterministic and shuffle:
+        # Use deterministic sampler for non-distributed training
+        sampler = RandomSampler(dataset, generator=generator)
+        shuffle = False  # Don't use shuffle with RandomSampler
     else:
-        raise NotImplementedError(f"Dataset {cfg.dataset} not implemented or misspelled")
+        sampler = None
+    
+    # Set worker init function for deterministic data loading
+    worker_init_fn = seed_worker if cfg.deterministic else None
+    
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        sampler=sampler,
+        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
+        pin_memory=True,
+        worker_init_fn=worker_init_fn,
+        generator=generator if cfg.deterministic else None,
+        drop_last=drop_last,
+        persistent_workers=cfg.num_workers > 0 if hasattr(cfg, 'num_workers') else True
+    )
+
         
 def _get_cifar10_loaders(cfg):
     """
@@ -117,7 +205,7 @@ def _get_cifar10_loaders(cfg):
     
     # Use stratified split with validation ratio of 0.2 (10,000 out of 50,000)
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=0.2, random_state=cfg.seed
+        dataset_no_transform, val_ratio=0.2, random_state=cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -139,29 +227,17 @@ def _get_cifar10_loaders(cfg):
         root=dataset_path, train=False, download=False, transform=transform_test
     )
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=True, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    # Create deterministic data loaders
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
     )
     
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
     )
     
     return train_loader, val_loader, test_loader
@@ -195,7 +271,7 @@ def _get_cifar100_loaders(cfg):
     
     # Use stratified split with validation ratio of 0.2 (10,000 out of 50,000)
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=0.2, random_state=cfg.seed
+        dataset_no_transform, val_ratio=0.2, random_state=cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -217,29 +293,17 @@ def _get_cifar100_loaders(cfg):
         root=dataset_path, train=False, download=False, transform=transform_test
     )
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=True, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    # Create deterministic data loaders
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
     )
     
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
     )
     
     return train_loader, val_loader, test_loader
@@ -280,7 +344,7 @@ def _get_svhn_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -294,34 +358,20 @@ def _get_svhn_loaders(cfg):
         val_indices
     )
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=True, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    # Create deterministic data loaders
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
     )
     
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
     )
     
     return train_loader, val_loader, test_loader
-
-
 
 def _get_tinyimagenet_loaders(cfg):
     """
@@ -393,19 +443,6 @@ def _get_tinyimagenet_loaders(cfg):
             transform=transform_test
         )
         
-        # Debug info
-        print(f"TinyImageNet train set: {len(train_dataset)} images")
-        print(f"TinyImageNet val set: {len(val_dataset)} images")
-        
-        # Verify class distribution in validation set
-        val_targets = [label for _, label in val_dataset.samples]
-        class_counts = {}
-        for class_idx in range(200):
-            count = val_targets.count(class_idx)
-            class_counts[class_idx] = count
-            if count != 50:  # Each class should have 50 samples
-                print(f"Warning: Class {class_idx} has {count} samples (expected 50)")
-        
         # TinyImageNet typically uses the validation set as test set
         test_dataset = val_dataset
         
@@ -413,35 +450,89 @@ def _get_tinyimagenet_loaders(cfg):
         print(f"Error loading TinyImageNet datasets: {e}")
         raise
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=True, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    # Create deterministic data loaders
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
     )
     
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
     )
     
     return train_loader, val_loader, test_loader
 
 def _get_imagenet_loaders(cfg):
-    pass
+    """
+    Return train, validation, and test loaders for ImageNet with deterministic data loading
+    and standard ImageNet preprocessing.
+    """
+    dataset_path = get_dataset_path(cfg)
+    
+    # Verify the dataset paths exist
+    train_dir = os.path.join(dataset_path, 'train')
+    val_dir = os.path.join(dataset_path, 'val')
+    
+    if not os.path.exists(train_dir) or not os.path.exists(val_dir):
+        raise FileNotFoundError(f"ImageNet directories not found at {dataset_path}. "
+                                f"Expected 'train' and 'val' subdirectories.")
+    
+    print(f"Loading ImageNet dataset from {dataset_path}...")
+    
+    # Standard ImageNet preprocessing for training
+    transform_train = transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+    ])
+    
+    # Standard ImageNet preprocessing for evaluation
+    transform_test = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+    ])
+    
+    # For ImageNet, we use the whole training set, no stratified split since it's already large
+    train_dataset = datasets.ImageFolder(
+        train_dir, 
+        transform=transform_train
+    )
+    
+    # Use the official validation set for both validation and testing
+    # This is standard practice for ImageNet since the test set doesn't have public labels
+    val_dataset = datasets.ImageFolder(
+        val_dir, 
+        transform=transform_test
+    )
+    
+    test_dataset = val_dataset  # Reuse validation dataset as test dataset
+    
+    print(f"ImageNet datasets loaded successfully:")
+    print(f"- Training set: {len(train_dataset)} images")
+    print(f"- Validation set: {len(val_dataset)} images")
+    
+    # Create deterministic data loaders using your existing function
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
+    )
+    
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
+    )
+    
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
+    )
+    
+    return train_loader, val_loader, test_loader
+
 
 
 def _get_cub_loaders(cfg):
@@ -482,7 +573,7 @@ def _get_cub_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -496,31 +587,17 @@ def _get_cub_loaders(cfg):
         val_indices
     )
     
-    # Create data loaders
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=True, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    # Create deterministic data loaders
+    train_loader = create_deterministic_loader(
+        train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    val_loader = create_deterministic_loader(
+        val_dataset, cfg, shuffle=False, drop_last=False
     )
     
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=cfg.batch_size, 
-        shuffle=False, 
-        num_workers=cfg.num_workers if hasattr(cfg, 'num_workers') else 4,
-        pin_memory=True
+    test_loader = create_deterministic_loader(
+        test_dataset, cfg, shuffle=False, drop_last=False
     )
     
     return train_loader, val_loader, test_loader
-
-    

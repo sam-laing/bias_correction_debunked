@@ -1,40 +1,41 @@
+# General Settings
 deterministic: true
-sampler_seed: 66
+sampler_seed: 67
+seed: 66
+one_seeded: true
 
 # Dataset Configuration
-dataset: "cifar10"  # Options: cifar10, cifar100, svhn, tiny_imagenet, imagenet
-#data_dir: "/fast/slaing/data/vision/tiny-imagenet-200"
+dataset: "cifar10"
+data_dir: null  # Set to null for default paths
 batch_size: 512
 num_workers: 4
 
 # Model Configuration
-model: "resnet20"  # Options:  resnet stuff, ViT, basic_cnn, VGG
+model: "resnet20"
 
 # Training Parameters
-epochs: 30
+epochs: 100
 lr: 0.005
 weight_decay: 0.01
 beta1: 0.9
 beta2: 0.999
-eps: 1.e-8
-do_bias_correction: [true, false]
+eps: 1.0e-8
+do_bias_correction: false  # Change this as needed for your experiments
 
-over_write: true
-
-# Scheduler Configuration
-scheduler: "warmup_cosine"  # Options: warmup_cosine, warmup_linear, warmup_constant, cosine, warmup_step, exponential 
-warmup_steps: 0.1  # Proportion of training steps for warmup
-lr_start: 0.0  # Start learning rate for warmup
-lr_end: 1.e-5
-cfg.step_size: 10
-cfg.gamma: 0.5
+# Scheduler Configuration  
+scheduler: "warmup_cosine"
+warmup_steps: 0.1
+lr_start: 0.0
+lr_end: 1.0e-5
+step_size: 10
+gamma: 0.5
 cooldown_steps: null
 
 # Logging Configuration
-use_wandb: true
+use_wandb: false  # Set to false for debugging
 wandb_project: "bias_correction_experiments"
 wandb_dir: "./wandb_logs"
-wandb_api_key: ""  # Leave empty to use environment variable or wandb login
+wandb_api_key: ""
 out_dir: "/fast/slaing/exp/vision"
 
 # Checkpoint Configuration
@@ -43,5 +44,3 @@ save_last_checkpoint: true
 resume: false
 resume_exp_name: null
 over_write: false
-
-seed: 66

@@ -27,9 +27,15 @@ FLAGS = flags.FLAGS
 
 def main(_):
     CFG_PATH, JOB_IDX = FLAGS.config, FLAGS.job_idx
-    #cfg = vision_utils.load_config(CFG_PATH, JOB_IDX)
     # In train.py
     cfg, _ = vision_utils.load_config(CFG_PATH, JOB_IDX)
+
+    if (cfg.deterministic) and (cfg.one_seeded):
+        cfg.sampler_seed = cfg.seed
+
+        print(f"sampler seed: {cfg.sampler_seed}, seed: {cfg.seed} - should be same")
+
+
     local_rank, world_size, device, master_process = pytorch_setup(cfg)
 
     #if master_process:
