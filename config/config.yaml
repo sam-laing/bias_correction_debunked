@@ -22,7 +22,7 @@ do_bias_correction: [true, false]
 over_write: true
 
 # Scheduler Configuration
-scheduler: warmup_step  # Options: warmup_cosine, warmup_linear, warmup_constant, cosine, warmup_step, exponential 
+scheduler: "warmup_cosine"  # Options: warmup_cosine, warmup_linear, warmup_constant, cosine, warmup_step, exponential 
 warmup_steps: 0.1  # Proportion of training steps for warmup
 lr_start: 0.0  # Start learning rate for warmup
 lr_end: 1.e-5
