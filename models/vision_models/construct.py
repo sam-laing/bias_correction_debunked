@@ -40,6 +40,21 @@ def construct_model(cfg):
     elif cfg.model == "resnet101":
         import torchvision
         model = torchvision.models.resnet101(num_classes=num_classes)
+
+
+    elif cfg.model.startswith("resnet"):
+        assert cfg.dataset == "cifar10" or cfg.dataset == "cifar100", "must use cifar10/100 for variable size resnet, custom code handles it"
+
+        # get the number that cfg.model endswith (resnetN)
+        depth = int(cfg.model[6:])
+
+        from .resnet_cifar import make_resnet_cifar
+
+        assert (depth - 2) % 6 == 0, "depth should be 6n+2 (e.g., 20, 32, 44, 56, 110, 1202)"
+        n = (depth - 2) // 6
+        model = make_resnet_cifar(depth=depth, num_classes=num_classes, n=n)
+
+
         
     elif cfg.model == "ViT":
         from torchvision.models import vision_transformer

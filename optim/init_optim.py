@@ -6,10 +6,25 @@ def initialize_optimizer(param_groups, cfg):
     """
     Initialize an optimizer from the config file
     """
-    return CustomAdamW(
-        param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
-        eps=cfg.eps, weight_decay=cfg.weight_decay, 
-        do_bias_correction=cfg.do_bias_correction)
+
+    if cfg.optimizer is None:
+
+        return CustomAdamW(
+            param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
+            eps=cfg.eps, weight_decay=cfg.weight_decay, 
+            do_bias_correction=cfg.do_bias_correction
+            )
+    
+    elif cfg.optimizer == "muon":
+        # definitely need some fine grained logic where 1d layers just have adamw or SGD
+        # and other layers muon with flattening stuff for more than 2d
+
+        from .muon import Muon  
+        momentum = cfg.momentum if cfg.momentum is not None else cfg.beta1 
+
+        return None # do later 
+    
+
 
 
 
@@ -91,6 +106,41 @@ def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
         
         from torch.optim.lr_scheduler import StepLR
         return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
+    
+    elif cfg.scheduler == "multistep":
+        gamma = 0.5 if cfg.gamma is None else cfg.gamma
+
+        # divide epochs into milestones 3 times evenly
+        milestones = [int(cfg.epochs * i / 3) for i in range(1, 4)]
+      
+        from torch.optim.lr_scheduler import MultiStepLR
+        return MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+    
+
+    elif cfg.scheduler == "warmup_multistep":
+        gamma = 0.5 if cfg.gamma is None else cfg.gamma
+
+        # divide epochs into milestones 3 times evenly
+        milestones = [int(cfg.epochs * i / 3) for i in range(1, 4)]
+
+        assert cfg.warmup_steps is not None, "warmup_steps must be defined if warmup_steps is defined"
+
+        assert cfg.lr_start is not None, "lr_start must be defined if warmup_steps is defined"
+
+        from .lr_schedule import WarmupMultiStep  
+
+        warmup_steps = cfg.warmup_steps * optim_steps
+        return WarmupMultiStep(
+            optimizer=optimizer,
+            lr_start=cfg.lr_start,
+            warmup_steps=warmup_steps,
+            milestones=milestones,
+            gamma=gamma
+        )
+    
+
+
+
     
     
 

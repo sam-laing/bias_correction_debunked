@@ -156,3 +156,57 @@ class WarmupStep(object):
     def load_state_dict(self, state_dict):
         """Loads scheduler state from checkpoint"""
         self.__dict__.update(state_dict)
+
+
+class WarmupMultiStep(object):
+    """
+    Linear warmup for a certain number of steps, followed by multi-step decay.
+    The learning rate is reduced by a factor of gamma at specified milestones.
+    """
+
+    def __init__(
+        self, optimizer, lr_start, lr_max, lr_end, warmup_steps, milestones, gamma
+    ):
+        self.optimizer = optimizer
+        self.lr_start = lr_start
+        self.lr_max = lr_max  # Peak LR after warmup
+        self.lr_end = lr_end  # Minimum LR
+        self.warmup_steps = warmup_steps
+        self.milestones = milestones  # List of steps to reduce LR
+        self.gamma = gamma  # Decay factor
+        self.iter = 0
+        
+        # Initialize optimizer with starting learning rate
+        for group in self.optimizer.param_groups:
+            group["lr"] = lr_start
+        
+    def schedule(self, t):
+        """returns lr(t), where t is the current step"""
+        if t <= self.warmup_steps:
+            # Linear warmup phase
+            return self.lr_start + (self.lr_max - self.lr_start) / self.warmup_steps * t
+        else:
+            # Multi-step decay phase
+            lr = self.lr_max
+            for milestone in self.milestones:
+                if t >= milestone:
+                    lr *= self.gamma
+            # Ensure we don't go below minimum LR
+            return max(lr, self.lr_end)
+    def step(self):
+        """computes new lr and sets it in self.optimizer"""
+        self.iter += 1
+        lr = self.schedule(self.iter)
+        for group in self.optimizer.param_groups:
+            group["lr"] = lr
+    
+    def state_dict(self):
+        """Returns scheduler state for checkpointing"""
+        return {key: value for key, value in self.__dict__.items() if key != "optimizer"}
+    
+    def load_state_dict(self, state_dict):
+        """Loads scheduler state from checkpoint"""
+        self.__dict__.update(state_dict)
+    
+
+      
