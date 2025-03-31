@@ -2,25 +2,25 @@
 deterministic: true
 sampler_seed: 99
 seed: 99
-one_seeded: false
+one_seeded: true  # Set to true to use same seed for data and model
 
 # Dataset Configuration
-dataset: "cifar10"
+dataset: "cifar100"
 data_dir: null  # Set to null for default paths
-batch_size: [128]
+batch_size: [256]  # Added 256 batch size option
 num_workers: 4
 
 # Model Configuration
-model: "resnet20"
+model: ["resnet56" ]
 
 # Training Parameters
-epochs: 200
-lr: [3.e-3, 1.e-3, 3.e-4]  
-weight_decay: [0.01]
-beta1: [0.9, 0.95]
-beta2: 0.999
+epochs: 150
+lr: [1.e-2, 7.e-3]  # Good range for CIFAR-100
+weight_decay: [0.005]  # Added lower value for CIFAR-100
+beta1: 0.9  # Fixed to standard value 
+beta2: 0.99
 eps: 1.e-8
-do_bias_correction: [false, true]  
+do_bias_correction: [false, true]  # Your experimental variable
 
 # Scheduler Configuration  
 scheduler: "warmup_cosine"
@@ -30,7 +30,7 @@ lr_end: 1.e-6
 cooldown_steps: null
 
 # Logging Configuration
-use_wandb: true  # Set to false for debugging
+use_wandb: true
 wandb_project: "bias_correction_experiments"
 wandb_dir: "./wandb_logs"
 wandb_api_key: ""

@@ -3,8 +3,8 @@ LOGS_DIR=/home/slaing/bias_correction_debunked/logs
 executable=/home/slaing/bias_correction_debunked/cluster/condor/single_gpu/run.sh  
 
 # job vars
-config=/home/slaing/bias_correction_debunked/config/config.yaml
-n_jobs=12
+config=/home/slaing/bias_correction_debunked/config/cifar100_config.yaml
+n_jobs=4
 
 # pass arguments 
 arguments = $(config) $(Process)
