@@ -7,13 +7,14 @@ def initialize_optimizer(param_groups, cfg):
     Initialize an optimizer from the config file
     """
 
-    if cfg.optimizer is None:
+    if (cfg.optimizer is None) or cfg.optimizer == "adamw":
 
         return CustomAdamW(
             param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
             eps=cfg.eps, weight_decay=cfg.weight_decay, 
             do_bias_correction=cfg.do_bias_correction
             )
+
     
     elif cfg.optimizer == "muon":
         # definitely need some fine grained logic where 1d layers just have adamw or SGD
@@ -108,7 +109,11 @@ def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
         return StepLR(optimizer, step_size=cfg.step_size, gamma=cfg.gamma)
     
     elif cfg.scheduler == "multistep":
-        gamma = 0.5 if cfg.gamma is None else cfg.gamma
+
+        try:
+            gamma = cfg.gamma
+        except AttributeError:
+            gamma = 0.5
 
         # divide epochs into milestones 3 times evenly
         milestones = [int(cfg.epochs * i / 3) for i in range(1, 4)]
@@ -118,7 +123,10 @@ def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
     
 
     elif cfg.scheduler == "warmup_multistep":
-        gamma = 0.5 if cfg.gamma is None else cfg.gamma
+        try: 
+            gamma = cfg.gamma
+        except AttributeError:
+            gamma = 0.5
 
         # divide epochs into milestones 3 times evenly
         milestones = [int(cfg.epochs * i / 3) for i in range(1, 4)]
@@ -133,6 +141,8 @@ def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
         return WarmupMultiStep(
             optimizer=optimizer,
             lr_start=cfg.lr_start,
+            lr_max=cfg.lr,
+            lr_end=cfg.lr_end,
             warmup_steps=warmup_steps,
             milestones=milestones,
             gamma=gamma

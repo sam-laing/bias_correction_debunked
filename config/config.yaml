@@ -7,17 +7,21 @@ one_seeded: false
 # Dataset Configuration
 dataset: "cifar10"
 data_dir: null  # Set to null for default paths
-batch_size: [128]
+batch_size: [512, 1024]
 num_workers: 4
 
+# validation size
+val_size: 0.2
+
 # Model Configuration
-model: "resnet20"
+model: "resnet9"
 
 # Training Parameters
-epochs: 200
-lr: [3.e-3, 1.e-3, 3.e-4]  
-weight_decay: [0.01]
-beta1: [0.9, 0.95]
+epochs: 150
+optimizer: "adamw"
+lr: [5.e-3, 7.e-3]  
+weight_decay: [0.05]
+beta1: [0.92]
 beta2: 0.999
 eps: 1.e-8
 do_bias_correction: [false, true]  
