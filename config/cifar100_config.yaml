@@ -7,12 +7,12 @@ one_seeded: true  # Set to true to use same seed for data and model
 # Dataset Configuration
 dataset: "cifar100"
 data_dir: null  # Set to null for default paths
-batch_size: [256]  # Added 256 batch size option
+batch_size: [256, 512]  # Added 256 batch size option
 num_workers: 4
 
 # Model Configuration
-model: ["resnet56" ]
-
+model: ["resnet9" ]
+optimizer: "adamw"
 # Training Parameters
 epochs: 150
 lr: [1.e-2, 7.e-3]  # Good range for CIFAR-100

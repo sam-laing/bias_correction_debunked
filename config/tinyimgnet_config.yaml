@@ -1,0 +1,49 @@
+# General Settings
+deterministic: true
+sampler_seed: 99
+seed: 99
+one_seeded: true  # Set to true for fully deterministic runs
+
+# Dataset Configuration
+dataset: "tiny_imagenet"
+data_dir: null  # Set to null for default paths
+batch_size: [64, 128]  # Smaller batches for ViT which is parameter-heavy
+num_workers: 4
+
+# validation size
+val_size: 0.1  # TinyImageNet already has a validation set
+
+# Model Configuration
+model: "ViT"  # Vision Transformer
+
+# Training Parameters
+epochs: 200  # ViTs typically need longer training
+optimizer: "adamw"
+lr: [1.e-3, 5.e-4]  # ViTs typically work better with smaller learning rates
+weight_decay: [0.05, 0.1]  # Stronger regularization helps ViT generalization
+beta1: 0.9  # Standard value
+beta2: 0.999  # Standard value
+eps: 1.e-8
+do_bias_correction: [false, true]  # Your experimental variable
+
+# Scheduler Configuration  
+scheduler: "warmup_cosine"
+warmup_steps: 0.1  # Longer warmup (10%) for ViT stability
+lr_start: 1.e-6
+lr_end: 1.e-7  # Slightly lower end LR
+cooldown_steps: null
+
+# Logging Configuration
+use_wandb: true
+wandb_project: "bias_correction_tiny_imagenet"
+wandb_dir: "./wandb_logs"
+wandb_api_key: ""
+out_dir: "/fast/slaing/exp/vision"
+
+# Checkpoint Configuration
+save_intermediate_checkpoints: true  # Save checkpoints due to longer training
+checkpoint_frequency: 20  # Save every 20 epochs
+save_last_checkpoint: true
+resume: false
+resume_exp_name: null
+over_write: false

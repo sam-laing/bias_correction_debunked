@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 # "ResNet-9" model from https://docs.ffcv.io/ffcv_examples/cifar10.html
-def create_model():
+def create_model(num_classes=10):
     ch = torch
     class Mul(ch.nn.Module):
         def __init__(self, weight):
@@ -29,7 +29,6 @@ def create_model():
                 ch.nn.ReLU(inplace=True)
         )
 
-    NUM_CLASSES = 10
     model = ch.nn.Sequential(
         conv_bn(3, 64, kernel_size=3, stride=1, padding=1),
         conv_bn(64, 128, kernel_size=5, stride=2, padding=2),
@@ -40,7 +39,7 @@ def create_model():
         conv_bn(256, 128, kernel_size=3, stride=1, padding=0),
         ch.nn.AdaptiveMaxPool2d((1, 1)),
         Flatten(),
-        ch.nn.Linear(128, NUM_CLASSES, bias=False),
+        ch.nn.Linear(128, num_classes, bias=False),
         Mul(0.2)
     )
     model = model.to(memory_format=ch.channels_last)
