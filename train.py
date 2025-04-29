@@ -95,7 +95,7 @@ def main(_):
         
         train_loss = engine.train_one_epoch(train_loader)
         val_loss, val_accuracy = None, None
-        if len(val_loader) != 0:
+        if val_loader is not None:
             val_loss, val_accuracy = engine.validate(val_loader)
         lr = optimizer.param_groups[0]['lr']
         

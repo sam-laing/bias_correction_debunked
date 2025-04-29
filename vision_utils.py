@@ -18,7 +18,24 @@ def init_wandb(cfg):
     group=cfg.dataset, 
     name=wandb_run_name, 
     dir=cfg.wandb_dir,
-    config=cfg._asdict()
+    config=cfg._asdict(),
+    tags = [  
+      f"model: {cfg.model}", 
+      f"dataset: {cfg.dataset}",
+      f"bias_corr: {cfg.do_bias_correction}",
+      f"sched: {cfg.scheduler}",
+      f"val_size: {cfg.val_size}",
+      f"lr: {cfg.lr}",
+      f"wd: {cfg.weight_decay}",
+      f"bs: {cfg.batch_size}",
+      f"b1: {cfg.beta1}",
+      f"b2: {cfg.beta2}",
+      f"seed: {cfg.seed}",
+      f"optimizer: {cfg.optimizer}",
+      f"dropout: {cfg.dropout}",
+      f"seed_fixed"
+
+    ]
   )
 
 def load_config(path, job_idx=None):
