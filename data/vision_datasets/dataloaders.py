@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader, Subset, SequentialSampler, RandomSampler
 from torchvision import datasets, transforms
+from torchvision.transforms import autoaugment
 import torchvision
 from typing import Any, Tuple, Callable, Optional
 import os
@@ -26,7 +27,7 @@ def get_loaders(cfg) -> Tuple[DataLoader, Optional[DataLoader], DataLoader]:
     
     #set the random seed for reproducibility with cfg.sampler_seed
     if cfg.sampler_seed is not None:
-        sampler_seed = cfg.sampler_seed if cfg.one_seeded else cfg.seed
+        sampler_seed = cfg.seed if cfg.one_seeded else cfg.sampler_seed
         torch.manual_seed(sampler_seed)
         np.random.seed(sampler_seed)
         random.seed(sampler_seed)
@@ -147,7 +148,7 @@ def create_deterministic_loader(
         # Distributed data parallel mode
         if cfg.deterministic:
 
-            sampler_seed = cfg.sampler_seed if cfg.one_seeded else cfg.seed
+            sampler_seed = cfg.seed if cfg.one_seeded else cfg.sampler_seed
             sampler = DistributedSampler(
                 dataset, 
                 shuffle=shuffle,
@@ -217,7 +218,7 @@ def _get_cifar10_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -290,7 +291,7 @@ def _get_cifar100_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -368,7 +369,7 @@ def _get_svhn_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -448,7 +449,7 @@ def _get_tinyimagenet_loaders(cfg):
     transform_train = transforms.Compose([
         transforms.RandomCrop(64, padding=8),
         transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        autoaugment.AutoAugment(policy=autoaugment.AutoAugmentPolicy.IMAGENET),  # Use ImageNet policy
         transforms.ToTensor(),
         transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2770, 0.2691, 0.2821))
     ])
@@ -489,7 +490,7 @@ def _get_tinyimagenet_loaders(cfg):
             )
             
             train_indices, val_indices = stratified_split(
-                dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+                dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
             )
             
             # Update train dataset to use only train indices
@@ -576,7 +577,7 @@ def _get_imagenet_loaders(cfg):
         # For ImageNet, create validation set from training data or subset of validation data
         dataset_no_transform = datasets.ImageFolder(train_dir, transform=None)
         train_indices, val_indices = stratified_split(
-            dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+            dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
         )
         
         # Update train dataset
@@ -642,7 +643,7 @@ def _get_cub_loaders(cfg):
     
     # Use stratified split
     train_indices, val_indices = stratified_split(
-        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.sampler_seed if cfg.one_seeded else cfg.seed
+        dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
     # Create datasets with proper transforms
@@ -687,9 +688,9 @@ def _get_sampler(dataset, cfg, start_step=0):
         if ddp:
             if hasattr(cfg, 'resume') and cfg.resume:
                 return StatefulDistributedSampler(
-                    dataset, shuffle=True, seed=cfg.sampler_seed if cfg.one_seeded else cfg.seed, start_step=start_step)
+                    dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed, start_step=start_step)
             else:
-                return DistributedSampler(dataset, shuffle=True, seed=cfg.sampler_seed if cfg.one_seeded else cfg.seed)
+                return DistributedSampler(dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed)
         else:
             # No specified sampler, single GPU
             if hasattr(cfg, 'resume') and cfg.resume:
@@ -711,8 +712,8 @@ def _get_sampler(dataset, cfg, start_step=0):
             return RandomSampler(dataset)
     elif cfg.sampler == 'distributed':
         if hasattr(cfg, 'resume') and cfg.resume:
-            return StatefulDistributedSampler(dataset, shuffle=True, seed=cfg.sampler_seed, start_step=start_step)
+            return StatefulDistributedSampler(dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed, start_step=start_step)
         else:
-            return DistributedSampler(dataset, shuffle=True, seed=cfg.sampler_seed)
+            return DistributedSampler(dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed)
     
     return None  # Default to no sampler if none of the conditions are met
