@@ -12,7 +12,7 @@ def init_wandb(cfg):
   #os.environ["WANDB_API_KEY"] = cfg.wandb_api_key
   os.environ["WANDB__SERVICE_WAIT"] = "600"
   os.environ["WANDB_SILENT"] = "true"
-  wandb_run_name = f"{cfg.model}, bias_corr={cfg.do_bias_correction}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, bs={cfg.batch_size}, b1={cfg.beta1}, b2={cfg.beta2}, seed={cfg.seed}"
+  wandb_run_name = f"{cfg.model}, bias_corr={cfg.do_bias_correction}, zero_init={cfg.zero_init}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, bs={cfg.batch_size}, b1={cfg.beta1}, b2={cfg.beta2}, seed={cfg.seed}"
   wandb.init(
     project=cfg.wandb_project,
     group=cfg.dataset, 
@@ -32,9 +32,8 @@ def init_wandb(cfg):
       f"b2: {cfg.beta2}",
       f"seed: {cfg.seed}",
       f"optimizer: {cfg.optimizer}",
-      f"dropout: {cfg.dropout}",
-      f"seed_fixed"
-
+      f"one_seeded: {cfg.one_seeded}",
+      f"zero_init: {cfg.zero_init}",
     ]
   )
 

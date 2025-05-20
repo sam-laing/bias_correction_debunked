@@ -12,6 +12,21 @@ class CustomAdamW(Optimizer):
     """
     A modified version of AdamW optimizer with an option
     to disable bias correction and initialize moments directly with gradients.
+
+
+    Args:
+        params (iterable): Parameters to optimize or dicts defining
+            parameter groups.
+        lr (float, optional): Learning rate. Default: 1e-3
+        betas (Tuple[float, float], optional): Coefficients used for computing
+            running averages of gradient and its square. Default: (0.9, 0.99)
+        eps (float, optional): Term added to the denominator to improve
+            numerical stability. Default: 1e-8
+        do_bias_correction (bool, optional): If True, applies bias correction: i.e m_t /= 1/(1-beta1^t), v_t /= 1/(1-beta2^t)
+            Default: False
+        weight_decay (float, optional): Weight decay (L2 penalty). Default: 0.0
+        zero_init (bool, optional): If True, initializes moments with zeros, else initializes to the gradient. 
+            Default: False
     """
 
     def __init__(
@@ -22,6 +37,7 @@ class CustomAdamW(Optimizer):
         betas: Betas2 = (0.9, 0.99),
         do_bias_correction: bool = False,
         weight_decay: float = 0.0,
+        zero_init: bool = False
     ):
         if lr <= 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
@@ -38,6 +54,7 @@ class CustomAdamW(Optimizer):
             weight_decay=weight_decay,
             eps=eps,
             do_bias_correction=do_bias_correction,
+            zero_init=zero_init,
         )
         super().__init__(params, defaults)
 
@@ -64,7 +81,7 @@ class CustomAdamW(Optimizer):
                 # State initialization
                 if len(state) == 0:
                     state["step"] = 0
-                    if group["do_bias_correction"]:
+                    if group["zero_init"]:
                         state["exp_avg"] = torch.zeros_like(p)
                         state["exp_avg_sq"] = torch.zeros_like(p)
                     else:

@@ -1,7 +1,7 @@
 # General Settings
 deterministic: true
 sampler_seed: 99
-seed: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
+seed: [600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614] 
 one_seeded: true
 
 
@@ -25,7 +25,8 @@ weight_decay: [0.05]
 beta1: [0.91]
 beta2: 0.999
 eps: 1.e-8
-do_bias_correction: [false, true]  
+do_bias_correction: [false, true] 
+zero_init: [false, true]
 
 
 dropout: null

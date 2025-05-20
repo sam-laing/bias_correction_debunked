@@ -20,7 +20,8 @@ weight_decay: [0.005]  # Added lower value for CIFAR-100
 beta1: 0.9  # Fixed to standard value 
 beta2: 0.99
 eps: 1.e-8
-do_bias_correction: [false, true]  # Your experimental variable
+do_bias_correction: [false, true]
+zero_init: false 
 
 # Scheduler Configuration  
 scheduler: "warmup_cosine"

@@ -2,6 +2,7 @@ from optim import CustomAdamW
 from torch.optim import Optimizer
 import torch
 
+
 def initialize_optimizer(param_groups, cfg):
     """
     Initialize an optimizer from the config file
@@ -12,7 +13,7 @@ def initialize_optimizer(param_groups, cfg):
         return CustomAdamW(
             param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
             eps=cfg.eps, weight_decay=cfg.weight_decay, 
-            do_bias_correction=cfg.do_bias_correction
+            do_bias_correction=cfg.do_bias_correction, zero_init=cfg.zero_init,
             )
 
     
@@ -25,9 +26,6 @@ def initialize_optimizer(param_groups, cfg):
 
         return None # do later 
     
-
-
-
 
 
 def initialize_scheduler(optimizer:Optimizer, optim_steps:int, cfg):
