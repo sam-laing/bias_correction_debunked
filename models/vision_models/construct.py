@@ -74,6 +74,23 @@ def construct_model(cfg):
                 num_classes=num_classes, 
                 dropout=0.1,
             )
+            if cfg.pretrained:
+                pretrained_path = "/fast/slaing/pretrained_weights/VIT_tiny_imagenet/vit_b_16_weights.pth"
+
+                try:
+                    pretrained_weights = torch.load(pretrained_path)
+
+                    filtered_weights = {
+                        k:v for k, v in pretrained_weights.items() if not k.startswith("head.head")
+                    }
+                    model.load_state_dict(filtered_weights, strict=False)
+                    print(f"Pretrained weights loaded from {pretrained_path}")
+                
+                except Exception as e:
+                    print(f"Error loading pretrained weights: {str(e)}")
+                    raise Exception(f"Pretrained weights not found at {pretrained_path}. Please check the path.")
+                    
+
         elif cfg.dataset == "imagenet":
             # For larger datasets, use the pre-trained model
             model = vision_transformer.vit_base_patch16_224_in21k(num_classes=num_classes)

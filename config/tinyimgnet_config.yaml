@@ -15,7 +15,6 @@ val_size: 0.1  # TinyImageNet already has a validation set
 
 # Model Configuration
 model: "ViT"  # Vision Transformer
-patch_size: 
 
 # Training Parameters
 epochs: 150 
