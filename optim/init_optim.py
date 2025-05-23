@@ -20,8 +20,9 @@ def initialize_optimizer(param_groups, cfg):
     elif cfg.optimizer == "muon":
         # definitely need some fine grained logic where 1d layers just have adamw or SGD
         # and other layers muon with flattening stuff for more than 2d
-
+        # in this case return Muon for specified layers and SGD for others
         from .muon import Muon  
+
         momentum = cfg.momentum if cfg.momentum is not None else cfg.beta1 
 
         return None # do later 
