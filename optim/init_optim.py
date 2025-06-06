@@ -15,6 +15,14 @@ def initialize_optimizer(param_groups, cfg):
             eps=cfg.eps, weight_decay=cfg.weight_decay, 
             do_bias_correction=cfg.do_bias_correction, zero_init=cfg.zero_init,
             )
+    
+    elif cfg.optimizer == "nestingMA":
+        from .nestingMA import NestedMA
+        return NestedMA(
+            param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
+            eps=cfg.eps, weight_decay=cfg.weight_decay, 
+            do_bias_correction=cfg.do_bias_correction, zero_init=cfg.zero_init,
+            )
 
     
     elif cfg.optimizer == "muon":

@@ -7,6 +7,7 @@ from contextlib import nullcontext
 
 from models.vision_models.construct import construct_model
 from optim import initialize_optimizer, initialize_scheduler
+from vision_utils import cutmix_datapoints, rand_bbox
 
 import time
 
@@ -20,6 +21,10 @@ class TorchEngine(torch.nn.Module):
         self.criterion = criterion
         self.scheduler = scheduler
 
+        self.generator = torch.Generator()
+        self.generator.manual_seed(self.cfg.seed)
+
+
     def forward(self, x):
         return self.model(x)
 
@@ -30,9 +35,19 @@ class TorchEngine(torch.nn.Module):
         running_loss = 0.0
         for i, (inputs, targets) in enumerate(train_loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
+            """   
+            if hasattr(self.cfg, "cutmix") and self.cfg.cutmix is not None:
+                r = torch.rand(1, generator=self.generator).item()
+                if r < self.cfg.cutmix_probability:
+                    inputs, targets = cutmix_datapoints(
+                        x=inputs, y=targets, device=self.device, alpha=self.cfg.cutmix
+                        )
+            """
+
             self.optimizer.zero_grad()
             outputs = self.model(inputs)
             loss = self.criterion(outputs, targets)
+
             loss.backward()
             self.optimizer.step()
             if self.scheduler is not None:

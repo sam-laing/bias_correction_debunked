@@ -28,8 +28,14 @@ def construct_model(cfg):
         from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=32, num_classes=num_classes)
     elif cfg.model == "resnet56":
-        from .resnet_cifar import make_resnet_cifar 
+        from .resnet_cifar import make_resnet_cifar
         model = make_resnet_cifar(depth=56, num_classes=num_classes)
+
+        """
+        if hasattr(cfg, "dropout") and cfg.dropout is not None:
+            from .dropout_wrapper import DropoutWrapper
+            model = DropoutWrapper(make_resnet_cifar(depth=56, num_classes=num_classes), dropout=cfg.dropout, num_mc_samples=10)
+        """
         
     elif cfg.model == "resnet50":
         import torchvision
@@ -57,6 +63,9 @@ def construct_model(cfg):
         n = (depth - 2) // 6
         model = make_resnet_cifar(depth=depth, num_classes=num_classes, n=n)
 
+    elif cfg.model == "densenet121":
+        import torchvision
+        model = torchvision.models.densenet121(num_classes=num_classes)
 
         
     elif cfg.model == "ViT":

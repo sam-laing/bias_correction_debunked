@@ -20,12 +20,10 @@ def get_loaders(cfg) -> Tuple[DataLoader, Optional[DataLoader], DataLoader]:
     Return a train, val and test loader defined under cfg.dataset attribute
     If cfg.val_size is 0, val_loader will be None
     """
-    # make CUDA operations deterministic if requested
     if hasattr(cfg, 'deterministic') and cfg.deterministic:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
     
-    #set the random seed for reproducibility with cfg.sampler_seed
     if cfg.sampler_seed is not None:
         sampler_seed = cfg.seed if cfg.one_seeded else cfg.sampler_seed
         torch.manual_seed(sampler_seed)
@@ -76,10 +74,8 @@ def get_dataset_path(cfg):
     if cfg.dataset == "imagenet":
         return "/fast/najroldi/data/imagenet/"
     if hasattr(cfg, 'data_dir') and cfg.data_dir:
-        # Use provided data_dir if it exists
         return cfg.data_dir
     else:
-        # Otherwise construct from base data_dir + dataset name
         return os.path.join(data_dir, dataset_names[cfg.dataset])
 
 def stratified_split(dataset, val_ratio=0.2, random_state=None):
@@ -95,7 +91,6 @@ def stratified_split(dataset, val_ratio=0.2, random_state=None):
     Returns:
         train_indices, val_indices
     """
-    # If validation ratio is 0, return all indices for training and empty array for validation
     if val_ratio == 0:
         return np.arange(len(dataset)), np.array([], dtype=int)
         
@@ -106,19 +101,16 @@ def stratified_split(dataset, val_ratio=0.2, random_state=None):
     elif hasattr(dataset, 'label'):
         targets = dataset.label
     else:
-        # For ImageFolder datasets that don't have a direct targets attribute
         targets = [sample[1] for sample in dataset.samples] if hasattr(dataset, 'samples') else None
     
     if targets is None:
         raise ValueError("Could not find labels in the dataset")
     
-    # Convert targets to numpy array if it's not already
     if isinstance(targets, list) or isinstance(targets, tuple):
         targets = np.array(targets)
     elif isinstance(targets, torch.Tensor):
         targets = targets.numpy()
         
-    # Use scikit-learn's stratified split
     splitter = StratifiedShuffleSplit(n_splits=1, test_size=val_ratio, random_state=random_state)
     train_indices, val_indices = next(splitter.split(np.zeros(len(targets)), targets))
     
@@ -136,7 +128,6 @@ def create_deterministic_loader(
     batch_size = batch_size or cfg.batch_size
     ddp = dist.is_initialized()
     
-    # Create a deterministic random generator if needed
     if cfg.deterministic and generator is None:
         generator = torch.Generator()
         if cfg.one_seeded:
@@ -145,7 +136,6 @@ def create_deterministic_loader(
             generator.manual_seed(cfg.sampler_seed)
     
     if ddp:
-        # Distributed data parallel mode
         if cfg.deterministic:
 
             sampler_seed = cfg.seed if cfg.one_seeded else cfg.sampler_seed
@@ -161,15 +151,13 @@ def create_deterministic_loader(
                 shuffle=shuffle,
                 drop_last=drop_last
             )
-        shuffle = False  # Don't use shuffle with DistributedSampler
+        shuffle = False 
     elif cfg.deterministic and shuffle:
-        # Use deterministic sampler for non-distributed training
         sampler = RandomSampler(dataset, generator=generator)
-        shuffle = False  # Don't use shuffle with RandomSampler
+        shuffle = False
     else:
         sampler = None
     
-    # Set worker init function for deterministic data loading
     worker_init_fn = seed_worker if cfg.deterministic else None
     
     return DataLoader(
@@ -193,7 +181,6 @@ def _get_cifar10_loaders(cfg):
     """
     dataset_path = get_dataset_path(cfg)
     
-    # Data augmentation for training
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
@@ -202,26 +189,21 @@ def _get_cifar10_loaders(cfg):
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     
-    # No augmentation for validation and test sets
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     
-    # Load datasets with no transform initially to perform stratified split
     dataset_no_transform = torchvision.datasets.CIFAR10(
         root=dataset_path, train=True, download=False, transform=None
     )
     
-    # Get validation size from config, default to 0.2 if not specified
     val_ratio = getattr(cfg, 'val_size', 0.2)
     
-    # Use stratified split
     train_indices, val_indices = stratified_split(
         dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
-    # Create datasets with proper transforms
     train_dataset = Subset(
         torchvision.datasets.CIFAR10(
             root=dataset_path, train=True, download=False, transform=transform_train
@@ -229,17 +211,14 @@ def _get_cifar10_loaders(cfg):
         train_indices
     )
     
-    # Create test dataset
     test_dataset = torchvision.datasets.CIFAR10(
         root=dataset_path, train=False, download=False, transform=transform_test
     )
     
-    # Create deterministic data loaders
     train_loader = create_deterministic_loader(
         train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    # Create validation loader only if validation size > 0
     val_loader = None
     if val_ratio > 0 and len(val_indices) > 0:
         val_dataset = Subset(
@@ -266,7 +245,6 @@ def _get_cifar100_loaders(cfg):
     """
     dataset_path = get_dataset_path(cfg)
     
-    # Data augmentation for training
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -275,26 +253,21 @@ def _get_cifar100_loaders(cfg):
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
     ])
     
-    # No augmentation for validation and test sets
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
     ])
     
-    # Load dataset with no transform initially to perform stratified split
     dataset_no_transform = torchvision.datasets.CIFAR100(
         root=dataset_path, train=True, download=False, transform=None
     )
     
-    # Get validation size from config, default to 0.2 if not specified
     val_ratio = getattr(cfg, 'val_size', 0.2)
     
-    # Use stratified split
     train_indices, val_indices = stratified_split(
         dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
-    # Create datasets with proper transforms
     train_dataset = Subset(
         torchvision.datasets.CIFAR100(
             root=dataset_path, train=True, download=False, transform=transform_train
@@ -302,17 +275,14 @@ def _get_cifar100_loaders(cfg):
         train_indices
     )
     
-    # Create test dataset
     test_dataset = torchvision.datasets.CIFAR100(
         root=dataset_path, train=False, download=False, transform=transform_test
     )
     
-    # Create deterministic data loaders
     train_loader = create_deterministic_loader(
         train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    # Create validation loader only if validation size > 0
     val_loader = None
     if val_ratio > 0 and len(val_indices) > 0:
         val_dataset = Subset(
@@ -339,7 +309,6 @@ def _get_svhn_loaders(cfg):
     """
     dataset_path = get_dataset_path(cfg)
     
-    # Data augmentation for training
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
@@ -347,43 +316,35 @@ def _get_svhn_loaders(cfg):
         transforms.Normalize((0.4377, 0.4438, 0.4728), (0.1980, 0.2010, 0.1970))
     ])
     
-    # No augmentation for validation and test sets
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4377, 0.4438, 0.4728), (0.1980, 0.2010, 0.1970))
     ])
     
-    # Load dataset with no transform initially to perform stratified split
     dataset_no_transform = datasets.SVHN(
         root=dataset_path, split='train', download=False, transform=None
     )
     
-    # Create test dataset
     test_dataset = datasets.SVHN(
         root=dataset_path, split='test', download=False, transform=transform_test
     )
     
-    # Get validation size from config, default to match test size if not specified
     default_val_ratio = len(test_dataset) / len(dataset_no_transform)
     val_ratio = getattr(cfg, 'val_size', default_val_ratio)
     
-    # Use stratified split
     train_indices, val_indices = stratified_split(
         dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
-    # Create datasets with proper transforms
     train_dataset = Subset(
         datasets.SVHN(root=dataset_path, split='train', download=False, transform=transform_train),
         train_indices
     )
     
-    # Create deterministic data loaders
     train_loader = create_deterministic_loader(
         train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    # Create validation loader only if validation size > 0
     val_loader = None
     if val_ratio > 0 and len(val_indices) > 0:
         val_dataset = Subset(
@@ -412,56 +373,45 @@ def _get_tinyimagenet_loaders(cfg):
     
     dataset_path = get_dataset_path(cfg)
     
-    # Check if validation directory needs restructuring
     val_dir = os.path.join(dataset_path, 'val')
     val_img_dir = os.path.join(val_dir, 'images')
     annotations_file = os.path.join(val_dir, 'val_annotations.txt')
     
-    # If validation directory has the original structure (not already restructured)
     if os.path.exists(val_img_dir) and os.path.exists(annotations_file):
         print("Restructuring TinyImageNet validation directory...")
         
-        # Read validation annotations file to get image-to-class mapping
         val_img_dict = {}
         with open(annotations_file, 'r') as f:
             for line in f.readlines():
                 parts = line.strip().split('\t')
                 val_img_dict[parts[0]] = parts[1]
         
-        # Create class directories
         for class_name in set(val_img_dict.values()):
             os.makedirs(os.path.join(val_dir, class_name), exist_ok=True)
         
-        # Move images to corresponding class directories
         for img_name, class_name in val_img_dict.items():
             source = os.path.join(val_img_dir, img_name)
             target = os.path.join(val_dir, class_name, img_name)
             if os.path.exists(source):
                 shutil.move(source, target)
         
-        # Remove now-empty images directory
         if os.path.exists(val_img_dir) and len(os.listdir(val_img_dir)) == 0:
             os.rmdir(val_img_dir)
             
         print("Validation directory restructured successfully.")
     
-    # Data augmentation for training
     transform_train = transforms.Compose([
-        transforms.RandomCrop(64, padding=8),
-        transforms.RandomHorizontalFlip(),
         autoaugment.AutoAugment(policy=autoaugment.AutoAugmentPolicy.IMAGENET),  # Use ImageNet policy
         transforms.ToTensor(),
         transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2770, 0.2691, 0.2821))
     ])
     
-    # No augmentation for validation and test sets
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2770, 0.2691, 0.2821))
     ])
     
     try:
-        # Load datasets from their directories
         train_dataset = datasets.ImageFolder(
             os.path.join(dataset_path, 'train'), 
             transform=transform_train
@@ -472,18 +422,14 @@ def _get_tinyimagenet_loaders(cfg):
             transform=transform_test
         )
         
-        # Check if we should use a separate validation set
         val_ratio = getattr(cfg, 'val_size', 0.0)
         
-        # Create deterministic data loaders
         train_loader = create_deterministic_loader(
             train_dataset, cfg, shuffle=True, drop_last=True
         )
         
-        # Create validation loader only if validation size > 0
         val_loader = None
         if val_ratio > 0:
-            # For TinyImageNet, create validation set from training data
             dataset_no_transform = datasets.ImageFolder(
                 os.path.join(dataset_path, 'train'), 
                 transform=None
@@ -493,13 +439,11 @@ def _get_tinyimagenet_loaders(cfg):
                 dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
             )
             
-            # Update train dataset to use only train indices
             train_dataset = Subset(train_dataset, train_indices)
             train_loader = create_deterministic_loader(
                 train_dataset, cfg, shuffle=True, drop_last=True
             )
             
-            # Create validation dataset
             val_dataset = Subset(
                 datasets.ImageFolder(
                     os.path.join(dataset_path, 'train'), 
@@ -512,7 +456,7 @@ def _get_tinyimagenet_loaders(cfg):
                 val_dataset, cfg, shuffle=False, drop_last=False
             )
         else:
-            # If no validation set is requested, use the test set as validation
+            #return none if va_size == 0
             val_loader = None
         
         test_loader = create_deterministic_loader(
@@ -532,7 +476,6 @@ def _get_imagenet_loaders(cfg):
     """
     dataset_path = get_dataset_path(cfg)
     
-    # Verify the dataset paths exist
     train_dir = os.path.join(dataset_path, 'train')
     val_dir = os.path.join(dataset_path, 'val')
     
@@ -542,7 +485,6 @@ def _get_imagenet_loaders(cfg):
     
     print(f"Loading ImageNet dataset from {dataset_path}...")
     
-    # Standard ImageNet preprocessing for training
     transform_train = transforms.Compose([
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
@@ -551,7 +493,6 @@ def _get_imagenet_loaders(cfg):
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
     
-    # Standard ImageNet preprocessing for evaluation
     transform_test = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -559,34 +500,27 @@ def _get_imagenet_loaders(cfg):
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
     
-    # Load datasets
     train_dataset = datasets.ImageFolder(train_dir, transform=transform_train)
     test_dataset = datasets.ImageFolder(val_dir, transform=transform_test)
     
-    # Check if we should create a validation set
     val_ratio = getattr(cfg, 'val_size', 0.0)
     
-    # Create train loader
     train_loader = create_deterministic_loader(
         train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    # Create validation loader only if validation size > 0
     val_loader = None
     if val_ratio > 0:
-        # For ImageNet, create validation set from training data or subset of validation data
         dataset_no_transform = datasets.ImageFolder(train_dir, transform=None)
         train_indices, val_indices = stratified_split(
             dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
         )
         
-        # Update train dataset
         train_dataset = Subset(train_dataset, train_indices)
         train_loader = create_deterministic_loader(
             train_dataset, cfg, shuffle=True, drop_last=True
         )
         
-        # Create validation dataset
         val_dataset = Subset(
             datasets.ImageFolder(train_dir, transform=transform_test),
             val_indices
@@ -611,7 +545,6 @@ def _get_cub_loaders(cfg):
     """
     dataset_path = get_dataset_path(cfg)
     
-    # Data augmentation for training
     transform_train = transforms.Compose([
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
@@ -619,7 +552,6 @@ def _get_cub_loaders(cfg):
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
     
-    # No augmentation for validation and test sets
     transform_test = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -627,37 +559,30 @@ def _get_cub_loaders(cfg):
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
     
-    # Load dataset with no transform initially for stratified split
     dataset_no_transform = datasets.ImageFolder(
         os.path.join(dataset_path, 'train'), transform=None
     )
     
-    # Test set
     test_dataset = datasets.ImageFolder(
         os.path.join(dataset_path, 'test'), transform=transform_test
     )
     
-    # Get validation size from config or use default based on test set size
     default_val_ratio = len(test_dataset) / len(dataset_no_transform)
     val_ratio = getattr(cfg, 'val_size', default_val_ratio)
     
-    # Use stratified split
     train_indices, val_indices = stratified_split(
         dataset_no_transform, val_ratio=val_ratio, random_state=cfg.seed if cfg.one_seeded else cfg.sampler_seed
     )
     
-    # Create datasets with proper transforms
     train_dataset = Subset(
         datasets.ImageFolder(os.path.join(dataset_path, 'train'), transform=transform_train),
         train_indices
     )
     
-    # Create deterministic data loaders
     train_loader = create_deterministic_loader(
         train_dataset, cfg, shuffle=True, drop_last=True
     )
     
-    # Create validation loader only if validation size > 0
     val_loader = None
     if val_ratio > 0 and len(val_indices) > 0:
         val_dataset = Subset(
@@ -680,10 +605,8 @@ def _get_sampler(dataset, cfg, start_step=0):
     Return a sampler for dataset based on cfg.sampler
     Not used in the main code path, but kept for compatibility
     """
-    # DDP check
     ddp = dist.is_initialized()
     
-    # This was the default in the original code
     if not hasattr(cfg, 'sampler'):
         if ddp:
             if hasattr(cfg, 'resume') and cfg.resume:
@@ -692,13 +615,11 @@ def _get_sampler(dataset, cfg, start_step=0):
             else:
                 return DistributedSampler(dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed)
         else:
-            # No specified sampler, single GPU
             if hasattr(cfg, 'resume') and cfg.resume:
                 return StatefulSequentialSampler(dataset, start_step=start_step)
             else:
-                return None  # Use the default PyTorch batch sampler
+                return None  
     
-    # Specific sampler types
     if cfg.sampler == 'sequential':
         if hasattr(cfg, 'resume') and cfg.resume:
             return StatefulSequentialSampler(dataset, start_step=start_step)
@@ -706,7 +627,6 @@ def _get_sampler(dataset, cfg, start_step=0):
             return SequentialSampler(dataset)
     elif cfg.sampler == 'random':
         if hasattr(cfg, 'resume') and cfg.resume:
-            # Use stateful random sampler here if needed
             return RandomSampler(dataset)
         else:
             return RandomSampler(dataset)
@@ -716,4 +636,4 @@ def _get_sampler(dataset, cfg, start_step=0):
         else:
             return DistributedSampler(dataset, shuffle=True, seed=cfg.seed if cfg.one_seeded else cfg.sampler_seed)
     
-    return None  # Default to no sampler if none of the conditions are met
+    return None  

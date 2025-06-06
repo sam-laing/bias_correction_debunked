@@ -1,17 +1,21 @@
 # General Settings
 deterministic: true
 sampler_seed: 2
-seed: [99]
+seed: [110,111]
 one_seeded: true  # Set to true for fully deterministic runs
 
 # Dataset Configuration
 dataset: "tiny_imagenet"
-data_dir: null  # Set to null for default paths
-batch_size: [128]  # Smaller batches for ViT which is parameter-heavy
+data_dir: null  
+batch_size: [64, 128]  
 num_workers: 4
-
+cutmix: 0.2  # CutMix augmentation
+cutmix_probability: 0.35  # Probability of applying CutMix
 # validation size
-val_size: 0.1  # TinyImageNet already has a validation set
+val_size: 0.1 
+
+
+pretrained: false  
 
 # Model Configuration
 model: "ViT"  # Vision Transformer
@@ -19,16 +23,16 @@ model: "ViT"  # Vision Transformer
 # Training Parameters
 epochs: 150 
 optimizer: "adamw"
-lr: [3.e-4] 
-weight_decay: [0.1]  
-beta1: 0.9  
-beta2: 0.999 
+lr: [1.e-4, 3.e-4, 7.e-4, 1.e-3] 
+weight_decay: [0.01, 0.1]  
+beta1: [0.95]  
+beta2: [0.95] 
 eps: 1.e-8
 do_bias_correction: [false, true]  
-zero_init: [true, false]  
+zero_init: [true]  
 
 # Scheduler Configuration  
-scheduler: "warmup_cosine"
+scheduler: [null, "warmup_cosine"]
 warmup_steps: 0.1  # Longer warmup (10%) for ViT stability
 lr_start: 1.e-6
 lr_end: 1.e-6

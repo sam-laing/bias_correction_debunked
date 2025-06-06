@@ -1,31 +1,35 @@
 # General Settings
 deterministic: true
-sampler_seed: 99
-seed: 99
+sampler_seed: null 
+seed: [55, 56, 57, 58]
 one_seeded: true  # Set to true to use same seed for data and model
 
 # Dataset Configuration
 dataset: "cifar100"
 data_dir: null  # Set to null for default paths
-batch_size: [256, 512]  # Added 256 batch size option
+batch_size: 256  # Added 256 batch size option
 num_workers: 4
-
+cutmix: 0 #the alpha for the beta distribution lambda is drawn from 
+cutmix_probability: 0
+val_size: 0.2
+#dropout: 0.05
 # Model Configuration
-model: ["resnet9" ]
+pretrained: false
+model: ["resnet56" ]
 optimizer: "adamw"
 # Training Parameters
-epochs: 150
-lr: [1.e-2, 7.e-3]  # Good range for CIFAR-100
-weight_decay: [0.005]  # Added lower value for CIFAR-100
-beta1: 0.9  # Fixed to standard value 
-beta2: 0.99
+epochs: 175
+lr: [0.0003, 0.001, 0.003] 
+weight_decay: [0.0075]  
+beta1: [0.9]  
+beta2: [0.999]
 eps: 1.e-8
 do_bias_correction: [false, true]
-zero_init: false 
+zero_init: true 
 
 # Scheduler Configuration  
-scheduler: "warmup_cosine"
-warmup_steps: 0.05
+scheduler: ["warmup_cosine", null] 
+warmup_steps: 0.1
 lr_start: 1.e-6
 lr_end: 1.e-6
 cooldown_steps: null

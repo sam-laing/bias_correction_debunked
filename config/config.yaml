@@ -6,6 +6,8 @@ one_seeded: true
 
 
 # Dataset Configuration
+cutmix: 0
+cutmix_probability: 0
 dataset: "cifar10"
 data_dir: null  # Set to null for default paths
 batch_size: [128]
@@ -27,7 +29,6 @@ beta2: 0.999
 eps: 1.e-8
 do_bias_correction: [false, true] 
 zero_init: [false, true]
-
 
 dropout: null
 
