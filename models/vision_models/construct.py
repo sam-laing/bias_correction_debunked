@@ -24,6 +24,7 @@ def construct_model(cfg):
     if cfg.model == "resnet20":
         from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=20, num_classes=num_classes)
+
     elif cfg.model == "resnet32":
         from .resnet_cifar import make_resnet_cifar 
         model = make_resnet_cifar(depth=32, num_classes=num_classes)
@@ -39,7 +40,9 @@ def construct_model(cfg):
         
     elif cfg.model == "resnet50":
         import torchvision
+        import torch.nn as nn
         model = torchvision.models.resnet50(num_classes=num_classes)
+        model.fc = nn.Sequential(nn.Dropout(p=cfg.dropout), model.fc) if hasattr(cfg, "dropout") and cfg.dropout is not None else model.fc
     elif cfg.model == "wide_resnet50_2":
         import torchvision
         model = torchvision.models.wide_resnet50_2(num_classes=num_classes) 
@@ -67,25 +70,37 @@ def construct_model(cfg):
         import torchvision
         model = torchvision.models.densenet121(num_classes=num_classes)
 
+    elif cfg.model == "cnn":
+        from .cnn import make_cnn
+        model = make_cnn(num_classes=num_classes)
+        
+
         
     elif cfg.model == "ViT":
         from torchvision.models import vision_transformer
         # Need to handle smaller image size for TinyImageNet (64x64)
         if cfg.dataset == "tiny_imagenet":
+            dropout = cfg.dropout if hasattr(cfg, "dropout") else 0.1
             # Option 1: Use a smaller patch size appropriate for 64x64 images
+            img_size = cfg.image_size if hasattr(cfg, "image_size") else 64
+            patch_size = cfg.patch_size if hasattr(cfg, "patch_size") else 8
+            num_layers = cfg.num_layers if hasattr(cfg, "num_layers") else 8
+            num_heads = cfg.num_heads if hasattr(cfg, "num_heads") else 8
+            hidden_dim = cfg.hidden_dim if hasattr(cfg, "hidden_dim") else 512
+            mlp_dim = cfg.mlp_dim if hasattr(cfg, "mlp_dim") else 2048
+
             model = vision_transformer.VisionTransformer(
-                image_size=64,
-                patch_size=8,  # Smaller patch size
-                num_layers=8,
-                num_heads=8,
-                hidden_dim=512,
-                mlp_dim=2048,
+                image_size=img_size,
+                patch_size=patch_size, 
+                num_layers=num_layers,
+                num_heads=num_heads,
+                hidden_dim=hidden_dim,
+                mlp_dim=mlp_dim,
                 num_classes=num_classes, 
-                dropout=0.1,
+                dropout=dropout,
             )
             if cfg.pretrained:
                 pretrained_path = "/fast/slaing/pretrained_weights/VIT_tiny_imagenet/vit_b_16_weights.pth"
-
                 try:
                     pretrained_weights = torch.load(pretrained_path)
 

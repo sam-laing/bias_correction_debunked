@@ -49,6 +49,9 @@ class TorchEngine(torch.nn.Module):
             loss = self.criterion(outputs, targets)
 
             loss.backward()
+            if hasattr(self.cfg, "grad_clip") and self.cfg.grad_clip is not None:
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
+
             self.optimizer.step()
             if self.scheduler is not None:
                 self.scheduler.step()

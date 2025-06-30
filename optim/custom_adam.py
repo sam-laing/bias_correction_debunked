@@ -14,19 +14,8 @@ class CustomAdamW(Optimizer):
     to disable bias correction and initialize moments directly with gradients.
 
 
-    Args:
-        params (iterable): Parameters to optimize or dicts defining
-            parameter groups.
-        lr (float, optional): Learning rate. Default: 1e-3
-        betas (Tuple[float, float], optional): Coefficients used for computing
-            running averages of gradient and its square. Default: (0.9, 0.99)
-        eps (float, optional): Term added to the denominator to improve
-            numerical stability. Default: 1e-8
-        do_bias_correction (bool, optional): If True, applies bias correction: i.e m_t /= 1/(1-beta1^t), v_t /= 1/(1-beta2^t)
-            Default: False
-        weight_decay (float, optional): Weight decay (L2 penalty). Default: 0.0
-        zero_init (bool, optional): If True, initializes moments with zeros, else initializes to the gradient. 
-            Default: False
+    - zero_init: bool, if True exp_avg and exp_avg_sq are initialized as zero and if False with g1, g1^2
+    - do_bias_correction: bool, if True bias correction is applied (i.e \hat{m_t} = mt / (1-beta1^t)), else not applied (\hat{m}_t = m_t)
     """
 
     def __init__(
@@ -36,8 +25,9 @@ class CustomAdamW(Optimizer):
         eps: float = 1e-8,
         betas: Betas2 = (0.9, 0.99),
         do_bias_correction: bool = False,
+        zero_init: bool = False,
         weight_decay: float = 0.0,
-        zero_init: bool = False
+        eps_inside_sqrt: bool = False
     ):
         if lr <= 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
@@ -55,6 +45,7 @@ class CustomAdamW(Optimizer):
             eps=eps,
             do_bias_correction=do_bias_correction,
             zero_init=zero_init,
+            eps_inside_sqrt=eps_inside_sqrt,
         )
         super().__init__(params, defaults)
 
@@ -72,13 +63,12 @@ class CustomAdamW(Optimizer):
                 if grad.is_sparse:
                     raise RuntimeError("Sparse gradients are not supported.")
 
-                # Apply weight decay (decoupled as in AdamW)
+                #apply weight decay (decoupled as in AdamW)
                 if group["weight_decay"] != 0:
                     p.data.mul_(1 - group["lr"] * group["weight_decay"])
 
                 state = self.state[p]
-
-                # State initialization
+                #init state
                 if len(state) == 0:
                     state["step"] = 0
                     if group["zero_init"]:
@@ -93,11 +83,11 @@ class CustomAdamW(Optimizer):
                 beta1, beta2 = group["betas"]
                 state["step"] += 1
 
-                # Update moving averages
+                #update ema with current gradient
                 exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
-                # Compute bias-corrected terms if needed
+                #optional bias correction addition
                 if group["do_bias_correction"]:
                     bias_correction1 = 1 - beta1 ** state["step"]
                     bias_correction2 = 1 - beta2 ** state["step"]
@@ -107,8 +97,14 @@ class CustomAdamW(Optimizer):
                     exp_avg_corrected = exp_avg
                     exp_avg_sq_corrected = exp_avg_sq
 
-                # Parameter update
-                denom = exp_avg_sq_corrected.sqrt().add_(group["eps"])
+                #finally update the parameters
+                if group["eps_inside_sqrt"]:
+                    # add eps to exp_avg_sq before taking the square root
+                    denom = exp_avg_sq_corrected.add_(group["eps"]).sqrt()
+                else:
+                    denom = exp_avg_sq_corrected.sqrt().add_(group["eps"])
+
                 p.data.addcdiv_(exp_avg_corrected, denom, value=-group["lr"])
 
         return loss
+    

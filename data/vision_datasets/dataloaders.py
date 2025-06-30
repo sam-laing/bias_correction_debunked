@@ -401,6 +401,8 @@ def _get_tinyimagenet_loaders(cfg):
         print("Validation directory restructured successfully.")
     
     transform_train = transforms.Compose([
+        transforms.RandomResizedCrop(64, scale=(0.08, 1.0), ratio=(3.0/4.0, 4.0/3.0)),
+        transforms.RandomHorizontalFlip(),
         autoaugment.AutoAugment(policy=autoaugment.AutoAugmentPolicy.IMAGENET),  # Use ImageNet policy
         transforms.ToTensor(),
         transforms.Normalize((0.4802, 0.4481, 0.3975), (0.2770, 0.2691, 0.2821))

@@ -1,7 +1,7 @@
 # General Settings
 deterministic: true
 sampler_seed: 99
-seed: [600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614] 
+seed: [55, 56, 57] 
 one_seeded: true
 
 
@@ -14,26 +14,25 @@ batch_size: [128]
 num_workers: 4
 
 # validation size
-val_size: 0.0
+val_size: 0.1
 
 # Model Configuration
 model: "resnet9"
 
 # Training Parameters
 epochs: 175
-optimizer: "adamw"
-lr: [7.e-3]  
+optimizer: "nestingMA"
+lr: [5.e-4, 1.e-3, 2.e-3, 5.e-3, 1.e-2]  
 weight_decay: [0.05]
-beta1: [0.91]
-beta2: 0.999
+beta1: 0.95
+beta2: 0.95
 eps: 1.e-8
-do_bias_correction: [false, true] 
-zero_init: [false, true]
-
+do_bias_correction: false #[false, true] 
+zero_init: [true]
 dropout: null
 
 # Scheduler Configuration  
-scheduler: "warmup_cosine"
+scheduler: [null, "warmup_cosine"]
 warmup_steps: 0.05
 lr_start: 1.e-6
 lr_end: 1.e-6

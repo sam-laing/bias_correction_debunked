@@ -66,13 +66,7 @@ def init_wandb(cfg):
   os.environ["WANDB__SERVICE_WAIT"] = "600"
   os.environ["WANDB_SILENT"] = "true"
   wandb_run_name = f"{cfg.model}, bias_corr={cfg.do_bias_correction}, zero_init={cfg.zero_init}, sched={cfg.scheduler}, lr={cfg.lr}, wd={cfg.weight_decay}, bs={cfg.batch_size}, b1={cfg.beta1}, b2={cfg.beta2}, seed={cfg.seed}"
-  wandb.init(
-    project=cfg.wandb_project,
-    group=cfg.dataset, 
-    name=wandb_run_name, 
-    dir=cfg.wandb_dir,
-    config=cfg._asdict(),
-    tags = [  
+  tags = [  
       f"model: {cfg.model}", 
       f"dataset: {cfg.dataset}",
       f"bias_corr: {cfg.do_bias_correction}",
@@ -90,6 +84,26 @@ def init_wandb(cfg):
       f"cutmix: {cfg.cutmix}",
       f"cutmix_prob: {cfg.cutmix_probability}",
     ]
+  if hasattr(cfg, "dropout"):
+    tags.append(f"dropout: {cfg.dropout}")
+
+  if cfg.dataset == "tiny_imagenet" and cfg.model == "ViT":
+    tags.extend([
+      f"img_size: {cfg.image_size}",
+      f"patch_size: {cfg.patch_size}",
+      f"num_heads: {cfg.num_heads}",
+      f"num_layers: {cfg.num_layers}",
+      f"hidden_dim: {cfg.hidden_dim}",
+      f"mlp_dim: {cfg.mlp_dim}",
+    ])
+
+  wandb.init(
+    project=cfg.wandb_project,
+    group=cfg.dataset, 
+    name=wandb_run_name, 
+    dir=cfg.wandb_dir,
+    config=cfg._asdict(),
+    tags = tags
   )
 
 def load_config(path, job_idx=None):

@@ -1,53 +1,64 @@
 # General Settings
 deterministic: true
-sampler_seed: 2
-seed: [110,111]
-one_seeded: true  # Set to true for fully deterministic runs
+sampler_seed: null
+seed: [71, 72]
+one_seeded: true 
 
-# Dataset Configuration
+#dataset Configuration
 dataset: "tiny_imagenet"
 data_dir: null  
-batch_size: [64, 128]  
+batch_size: 128
 num_workers: 4
-cutmix: 0.2  # CutMix augmentation
+cutmix: 0.2  
 cutmix_probability: 0.35  # Probability of applying CutMix
 # validation size
-val_size: 0.1 
+val_size: 0.1
+dropout: 0.2
+
 
 
 pretrained: false  
 
-# Model Configuration
-model: "ViT"  # Vision Transformer
+#model Configuration
+model: "resnet50"
+
+#just vit arguments
+image_size: 64
+patch_size: 8
+num_layers: 8
+num_heads: 8
+hidden_dim: 512
+mlp_dim: 2048
 
 # Training Parameters
-epochs: 150 
+epochs: 125
 optimizer: "adamw"
-lr: [1.e-4, 3.e-4, 7.e-4, 1.e-3] 
-weight_decay: [0.01, 0.1]  
+lr: [1.e-4, 3.e-4, 1.e-3, 3.e-3, 1.e-2]  
+weight_decay: [0.05]  
 beta1: [0.95]  
 beta2: [0.95] 
 eps: 1.e-8
 do_bias_correction: [false, true]  
-zero_init: [true]  
+zero_init: [true] 
+grad_clip: 1.0  
 
-# Scheduler Configuration  
+#scheduler Configuration  
 scheduler: [null, "warmup_cosine"]
-warmup_steps: 0.1  # Longer warmup (10%) for ViT stability
+warmup_steps: 0.1  
 lr_start: 1.e-6
 lr_end: 1.e-6
 cooldown_steps: null
 
-# Logging Configuration
+#logging Configuration
 use_wandb: true
 wandb_project: "bias_correction_experiments"
 wandb_dir: "./wandb_logs"
 wandb_api_key: ""
 out_dir: "/fast/slaing/exp/vision"
 
-# Checkpoint Configuration
-save_intermediate_checkpoints: true  # Save checkpoints due to longer training
-checkpoint_frequency: 20  # Save every 20 epochs
+#checkpoint Configuration
+save_intermediate_checkpoints: false 
+checkpoint_frequency: 300 
 save_last_checkpoint: true
 resume: false
 resume_exp_name: null
