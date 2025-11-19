@@ -1,7 +1,7 @@
 # General Settings
 deterministic: true
 sampler_seed: null
-seed: [71111]
+seed: [4567, 4568]
 one_seeded: true 
 
 #dataset Configuration
@@ -32,15 +32,16 @@ mlp_dim: 2048
 
 # Training Parameters
 epochs: 125
-optimizer: ["adamw"]
+optimizer: "adamw"
 lr: [3.e-3]  
 weight_decay: [0.05]  
-beta1: [0.95]  
-beta2: [0.95] 
-eps: 1.e-8
-do_bias_correction: [false]  
+beta1: [0.9]  
+beta2: [0.999] 
+eps: [1.e-2, 1.e-1]
+do_bias_correction: [true]  
 zero_init: [true] 
 grad_clip: 1.0  
+eps_inside_sqrt: [false, true]  # Use eps inside sqrt for AdamW
 
 #scheduler Configuration  
 scheduler: ["warmup_cosine"]

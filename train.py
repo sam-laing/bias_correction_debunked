@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import Optional, Literal, Union, List
 
 
-from vision_utils import LOGGING_COLUMNS_LIST, print_training_details
+from vision_utils import LOGGING_COLUMNS_LIST, print_training_details, get_moment_dict
 
 from absl import app, flags 
 flags.DEFINE_string("config", "config/config.yaml", "Path to config file")
@@ -91,13 +91,22 @@ def main(_):
     print("====== Starting the training loop ======")
     actual_train_and_val_time = 0
     best_val_accuracy = 0.0
-    for epoch in range(cfg.epochs):
-        
+    for epoch in range(cfg.epochs): 
         train_loss = engine.train_one_epoch(train_loader)
         val_loss, val_accuracy = None, None
         if val_loader is not None:
             val_loss, val_accuracy = engine.validate(val_loader)
         lr = optimizer.param_groups[0]['lr']
+
+
+        dump_optimizer_state = {}
+        if epoch == 25: 
+            optimizer = engine.optimizer
+            optimizer_dict = get_moment_dict(model, optimizer)
+
+            
+           
+            torch.save(optimizer_dict, "/fast/slaing/grad_track/" + f"optimizer_state_epoch_{epoch}.pth")
         
         # Log to wandb if enabled
         if cfg.use_wandb and master_process:

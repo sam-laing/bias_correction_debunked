@@ -3,8 +3,8 @@ LOGS_DIR=/home/slaing/bias_correction_debunked/logs
 executable=/home/slaing/bias_correction_debunked/cluster/condor/single_gpu/run.sh  
 
 # job vars
-config=/home/slaing/bias_correction_debunked/config/tinyimgnet_config.yaml
-n_jobs=1
+config=/home/slaing/bias_correction_debunked/config/tinyimgnet_eps.yaml
+n_jobs=8
 
 # pass arguments 
 arguments = $(config) $(Process)

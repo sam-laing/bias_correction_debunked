@@ -9,6 +9,14 @@ def initialize_optimizer(param_groups, cfg):
     """
 
     if (cfg.optimizer is None) or cfg.optimizer == "adamw":
+        if hasattr(cfg, "eps_inside_sqrt"):
+
+            return CustomAdamW(
+                param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 
+                eps=cfg.eps, weight_decay=cfg.weight_decay, 
+                do_bias_correction=cfg.do_bias_correction, zero_init=cfg.zero_init,
+                eps_inside_sqrt=cfg.eps_inside_sqrt
+            )
 
         return CustomAdamW(
             param_groups, lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), 

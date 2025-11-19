@@ -86,6 +86,9 @@ def init_wandb(cfg):
     ]
   if hasattr(cfg, "dropout"):
     tags.append(f"dropout: {cfg.dropout}")
+  
+  if hasattr(cfg, "eps_inside_sqrt"):
+    tags.append(f"eps_inside_sqrt: {cfg.eps_inside_sqrt}")
 
   if cfg.dataset == "tiny_imagenet" and cfg.model == "ViT":
     tags.extend([
@@ -245,3 +248,30 @@ def print_master(msg):
   
   if master_process:
     print(msg)
+
+
+def get_moment_dict(model, optimizer)->dict:
+  """
+  Iterates through the optimizer's state dict and records the exp_avg and
+  exp_avg_sq tensors for each layer. Saves the tensors in a dictionary at full precision.
+
+  Args:
+      model
+      optimizer (torch.optim.Optimizer): The AdamW optimizer.
+      micro_step (int): The current micro step (used for naming the saved file).
+
+  """
+  param_to_name = {id(param): name for name, param in model.named_parameters()}
+
+  moment_dict = {}
+  for param_group in optimizer.param_groups:
+    for param in param_group['params']:
+      if param in optimizer.state:
+        state = optimizer.state[param]
+        if ('exp_avg' in state) and ('exp_avg_sq' in state):
+          moment_dict[param_to_name[id(param)]] = {
+              'exp_avg': state['exp_avg'].clone(),
+              'exp_avg_sq': state['exp_avg_sq'].clone()
+          }
+  
+  return moment_dict
