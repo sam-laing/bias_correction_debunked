@@ -2,6 +2,7 @@
 
 This repository contains the code and experiments for the paper *"Simplifying Adam: Bias Correction Debunked"* ([link to paper](https://arxiv.org/abs/2511.20516)). The project examines the role of bias correction in the Adam optimizer and shows that it is not necessary for strong performance when modern training practices are used.
 
+The addiional language experiments used [this repo](https://github.com/sam-laing/minimalLM/) (forked from [Niccolo Ajroldi](https://github.com/Niccolo-Ajroldi)
 ---
 
 ## Summary
@@ -66,10 +67,12 @@ Bias correction does not improve results when Adam is used with a proper trainin
 ---
 
 ## Citation
-
-@misc{adam_bias_correction_2025,
-  title        = {Simplifying Adam: Bias Correction Debunked},
-  author       = {Sam Laing},
-  year         = {2025},
-  note         = {Preprint},
+@misc{laing2025adamsimplifiedbiascorrection,
+      title={Adam Simplified: Bias Correction Debunked},
+      author={Sam Laing and Antonio Orvieto},
+      year={2025},
+      eprint={2511.20516},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2511.20516},
 }
