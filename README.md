@@ -1,6 +1,6 @@
 # Simplifying Adam: Bias Correction Debunked
 
-This repository contains the code and experiments for the paper *"Simplifying Adam: Bias Correction Debunked"*. The project examines the role of bias correction in the Adam optimizer and shows that it is not necessary for strong performance when modern training practices are used.
+This repository contains the code and experiments for the paper *"Simplifying Adam: Bias Correction Debunked"* ([link to paper](https://arxiv.org/abs/2511.20516)). The project examines the role of bias correction in the Adam optimizer and shows that it is not necessary for strong performance when modern training practices are used.
 
 ---
 
