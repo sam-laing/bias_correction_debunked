@@ -14,7 +14,6 @@ from torch.utils.data.distributed import DistributedSampler
 from datasets import load_from_disk
 
 
-
 def get_loaders(cfg) -> Tuple[DataLoader, Optional[DataLoader], DataLoader]:
     """
     Return a train, val and test loader defined under cfg.dataset attribute
@@ -51,6 +50,7 @@ def get_loaders(cfg) -> Tuple[DataLoader, Optional[DataLoader], DataLoader]:
 
 
 # Base directory for all datasets
+# CUB not 100% working but also not used in paper
 dataset_names = {
     "cifar10": "cifar10", 
     "cifar100": "cifar100",
